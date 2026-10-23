@@ -118,7 +118,7 @@ export default function Navigation13({ onBack } = {}) {
           if (!onBack || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
           event.preventDefault()
           onBack()
-        }}>ZURÜCK</Link> : <>
+        }}>STARTSEITE</Link> : <>
           <button ref={triggerRef} className="nav13-toggle nav13-mobile font-display" type="button" onClick={event => { setKeyboardFocus(event.detail === 0); setOpen(true) }} aria-expanded={open} aria-controls="nav13-menu" aria-label="Menü öffnen">MENU</button>
           <Link ref={desktopRef} className="nav13-toggle nav13-desktop font-display" to="/menu">MENU</Link>
         </>}
@@ -128,7 +128,7 @@ export default function Navigation13({ onBack } = {}) {
         else keepFocusInMenu(event)
       }} onCancel={event => { event.preventDefault(); closeMenu() }}>
         <div className="nav13-panel-bar">
-          <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Zur Startseite">ZURÜCK</button>
+          <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Zur Startseite">STARTSEITE</button>
         </div>
         <div className="nav13-menu-viewport">
           <div className="nav13-panel">

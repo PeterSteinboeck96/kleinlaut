@@ -181,9 +181,14 @@ for (const viewport of viewports) {
       }
       if (route === '/fotos') {
         const photos = page.getByRole('img', { name: /^Gallery image/ })
-        const [first, second] = await Promise.all([photos.nth(0).boundingBox(), photos.nth(1).boundingBox()])
-        if (viewport.width < 640) expect(second.y).toBeGreaterThan(first.y)
-        else expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(1)
+        const [first, second, third] = await Promise.all([photos.nth(0).boundingBox(), photos.nth(1).boundingBox(), photos.nth(2).boundingBox()])
+        expect(first.x).toBe(0)
+        expect(first.width).toBe(viewport.width)
+        expect(first.y).toBeCloseTo(headerBox.height, 0)
+        expect(first.y + first.height).toBeGreaterThanOrEqual(viewport.height)
+        expect(second.y).toBeCloseTo(first.y + first.height, 0)
+        if (viewport.width < 640) expect(third.y).toBeGreaterThan(second.y)
+        else expect(Math.abs(second.y - third.y)).toBeLessThanOrEqual(1)
       }
       await expectNoHorizontalOverflow(page)
     }
@@ -412,7 +417,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
     }
     nav = await navigation()
     if (mobile) await page.getByRole('button', { name: 'Zur Startseite' }).click()
-    else await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'ZURÜCK', exact: true }).click()
+    else await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'STARTSEITE', exact: true }).click()
     await expect(page).toHaveURL('/')
     await expectNoHorizontalOverflow(page)
   })
@@ -461,7 +466,7 @@ for (const width of [390, 1440]) {
       expect(box.width).toBe(width)
       await toggle.click({ position: { x: 2, y: box.height / 2 } })
       const close = page.getByRole('button', { name: 'Zur Startseite' })
-      await expect(close).toHaveText('ZURÜCK')
+      await expect(close).toHaveText('STARTSEITE')
       await expect(close).toHaveCSS('outline-style', 'none')
       await expect(close).toHaveCSS('text-decoration-line', 'none')
       await expect(page.locator('.nav13-footer')).toHaveCount(0)
@@ -480,7 +485,7 @@ for (const width of [390, 1440]) {
       await menu.click()
       await expect(page).toHaveURL('/menu')
       await expect(page.getByRole('navigation', { name: 'Seitennavigation', exact: true }).getByRole('link')).toHaveCount(4)
-      await expect(page.getByRole('link', { name: 'ZURÜCK', exact: true })).toBeVisible()
+      await expect(page.getByRole('link', { name: 'STARTSEITE', exact: true })).toBeVisible()
     }
   })
 }
@@ -529,7 +534,7 @@ for (const width of [1024, 1440, 1920]) {
       await expectCentered(nav, page)
       await expect(nav).toHaveCSS('transform', 'none')
       await expect(page.locator('.menu-page')).toHaveCSS('background-color', 'rgb(0, 0, 0)')
-      if (destination === '/') await page.getByRole('link', { name: 'ZURÜCK', exact: true }).click()
+      if (destination === '/') await page.getByRole('link', { name: 'STARTSEITE', exact: true }).click()
       else await nav.getByRole('link', { name: 'FOTOS', exact: true }).click()
       // Navigation waits for the text to exit; the black page stays stationary.
       await expect.poll(() => links.first().evaluate(el => Number(getComputedStyle(el).opacity)), { intervals: [10, 20, 50] }).toBeLessThan(0.99)
@@ -605,7 +610,7 @@ for (const { width, start } of [
         }
       })
       if (width < 1024) await page.getByRole('button', { name: 'Zur Startseite' }).click()
-      else await page.getByRole('link', { name: 'ZURÜCK', exact: true }).click()
+      else await page.getByRole('link', { name: 'STARTSEITE', exact: true }).click()
       await expect.poll(() => page.evaluate(() => window.menuTransitionProbe.frames.some(frame => frame.cover !== null))).toBe(true)
       await expect(page.locator('.menu-reveal')).toHaveCount(0)
       await expect(page).toHaveURL('/')

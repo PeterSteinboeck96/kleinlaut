@@ -92,6 +92,24 @@
   background: #151515;
 }
 
+.gallery-photo:first-child {
+  --gallery-cover-height: 100vh;
+  grid-column: 1 / -1;
+  height: calc(var(--gallery-cover-height) - var(--header-height));
+  aspect-ratio: auto;
+}
+
+@supports (height: 100lvh) {
+  .gallery-photo:first-child { --gallery-cover-height: 100lvh; }
+}
+
+@media (max-width: 63.999rem), (hover: none) and (pointer: coarse) {
+  .gallery-photo:first-child {
+    /* Extend the photo behind translucent mobile browser controls, as on home. */
+    height: calc(var(--gallery-cover-height) + var(--safe-bottom));
+  }
+}
+
 .gallery-caption {
   position: fixed;
   z-index: 40;
