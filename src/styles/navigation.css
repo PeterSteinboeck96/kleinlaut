@@ -13,7 +13,13 @@
   text-align: center;
 }
 .nav13-desktop { display: none; }
-.nav13 a:focus-visible, .nav13 button:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
+.nav13 a:focus-visible, .nav13 button:focus-visible { outline: none; }
+/* Underlines identify keyboard focus without framing the menu or its controls. */
+.nav13[data-input="keyboard"] a:focus-visible,
+.nav13[data-input="keyboard"] button:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
 .nav13-roll { display: grid; align-items: center; min-height: var(--header-bar-height); padding-inline: 0.25rem; font-size: 1rem; }
 .nav13-roll-window { position: relative; display: block; overflow: hidden; }
 .nav13-roll-window > span { display: block; }
@@ -36,7 +42,7 @@
 .nav13-footer p { font-size: 0.875rem; }
 .nav13-footer > a { display: inline-block; margin-top: 0.5rem; }
 .nav13-footer-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; margin-top: 1.5rem; }
-.nav13-footer-actions a { display: flex; align-items: center; justify-content: center; gap: 0.375rem; border: 1px solid #000; border-radius: 999px; min-height: 44px; padding: 0.5rem; }
+.nav13-footer-actions a { display: flex; align-items: center; justify-content: center; gap: 0.375rem; min-height: 44px; padding: 0.5rem; }
 @media (min-width: 1024px) {
   .nav13-mobile { display: none; }
   .nav13-desktop {

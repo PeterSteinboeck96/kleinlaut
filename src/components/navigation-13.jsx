@@ -44,6 +44,7 @@ function RollLink({ item, reduceMotion }) {
 
 export default function Navigation13() {
   const [open, setOpen] = useState(false)
+  const [keyboardFocus, setKeyboardFocus] = useState(false)
   const dialogRef = useRef(null)
   const triggerRef = useRef(null)
   const desktopRef = useRef(null)
@@ -89,6 +90,17 @@ export default function Navigation13() {
   useEffect(() => () => restoreScrolling(), [])
 
   useEffect(() => {
+    const onKey = () => setKeyboardFocus(true)
+    const onPointer = () => setKeyboardFocus(false)
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onPointer)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onPointer)
+    }
+  }, [])
+
+  useEffect(() => {
     const query = window.matchMedia('(min-width: 1024px)')
     const onChange = () => { if (query.matches) setOpen(false) }
     query.addEventListener('change', onChange)
@@ -96,9 +108,9 @@ export default function Navigation13() {
   }, [])
 
   return (
-    <header className="top-bar nav13">
+    <header className="top-bar nav13" data-input={keyboardFocus ? 'keyboard' : 'pointer'}>
       <nav className="nav13-bar" aria-label="Hauptnavigation">
-        <button ref={triggerRef} className="nav13-toggle nav13-mobile font-display" type="button" onClick={() => setOpen(true)} aria-expanded={open} aria-controls="nav13-menu" aria-label="Menü öffnen">MENU</button>
+        <button ref={triggerRef} className="nav13-toggle nav13-mobile font-display" type="button" onClick={event => { setKeyboardFocus(event.detail === 0); setOpen(true) }} aria-expanded={open} aria-controls="nav13-menu" aria-label="Menü öffnen">MENU</button>
         <div ref={desktopRef} className="nav13-desktop">
           {links.map(item => <RollLink key={item.label} item={item} reduceMotion={reduceMotion} />)}
         </div>
@@ -107,7 +119,7 @@ export default function Navigation13() {
         <AnimatePresence onExitComplete={finishClose}>
           {open && <motion.div key="menu" className="nav13-panel" initial={reduceMotion ? false : { y: '-100%' }} animate={{ y: 0 }} exit={{ y: reduceMotion ? 0 : '-100%' }} transition={{ duration: reduceMotion ? 0 : 0.6, ease: EASE }}>
             <div className="nav13-panel-bar">
-              <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Menü schließen">ZURÜCK</button>
+              <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Menü schließen">MENU</button>
             </div>
             <motion.nav className="nav13-menu-links" aria-label="Mobile Seitennavigation" initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.06, delayChildren: reduceMotion ? 0 : 0.2 } } }}>
               {links.map((item, index) => <NavLink key={item.label} item={item} onClick={event => {

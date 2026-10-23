@@ -437,7 +437,14 @@ for (const width of [390, 1440]) {
       expect(box.width).toBe(width)
       await toggle.click({ position: { x: 2, y: box.height / 2 } })
       const close = page.getByRole('button', { name: 'Menü schließen' })
-      await expect(close).toHaveText('ZURÜCK')
+      await expect(close).toHaveText('MENU')
+      await expect(close).toHaveCSS('outline-style', 'none')
+      await expect(close).toHaveCSS('text-decoration-line', 'none')
+      for (const action of await page.locator('.nav13-footer-actions a').all()) {
+        await expect(action).toHaveCSS('border-top-width', '0px')
+      }
+      await page.keyboard.press('Tab')
+      await expect(page.getByRole('dialog').getByRole('link', { name: 'DRINKS', exact: true })).toHaveCSS('text-decoration-line', 'underline')
       const closeBox = await close.boundingBox()
       expect(closeBox.x).toBe(0)
       expect(closeBox.width).toBe(width)
