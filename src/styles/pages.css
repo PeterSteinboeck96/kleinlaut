@@ -2,6 +2,10 @@
   background: radial-gradient(circle at top, rgb(255 255 255 / 5%), #000 65%);
 }
 
+.menu-page .page-panel {
+  padding-bottom: calc(var(--space-6) + var(--safe-bottom) + var(--reservation-button-space));
+}
+
 .menu-links {
   display: grid;
   gap: var(--space-4);
@@ -29,26 +33,23 @@
 
 .imprint-details {
   display: grid;
-  gap: var(--space-2);
+  gap: 0;
   max-width: 100%;
   text-align: center;
   font-size: 1rem;
-  line-height: 1.5;
+  line-height: 1.65;
   color: #a3a3a3;
   overflow-wrap: anywhere;
 }
 
 .imprint-company {
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--space-4);
   color: #ff0;
   font-size: 1.125rem;
 }
 
 .imprint-details a {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
   max-width: 100%;
 }
 

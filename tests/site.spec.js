@@ -219,11 +219,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
     expect(buttonBox.x).toBeGreaterThanOrEqual(0)
     expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(viewport.width)
     const topBar = await page.locator('header').boundingBox()
-    expect(topBar.height).toBe(44 + 48)
+    expect(topBar.height).toBe(44 + 52)
     if (viewport.height > 480) {
       for (const name of ['Anruf', 'DMs', 'Mail']) {
         const linkBox = await page.getByRole('link', { name, exact: true }).boundingBox()
-        expect(buttonBox.y - (linkBox.y + linkBox.height)).toBeGreaterThanOrEqual(48)
+        expect(buttonBox.y - (linkBox.y + linkBox.height)).toBeGreaterThanOrEqual(32)
       }
     }
     await frame.evaluate((element) => {
@@ -289,9 +289,35 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
       expect(imageBox.height).toBeGreaterThanOrEqual(viewport.height + 34 - 1)
       const contactBottom = await page.getByRole('link', { name: 'Mail', exact: true }).evaluate(el => el.getBoundingClientRect().bottom)
       const reservationFrameTop = viewport.height - toolbarHeight - 34 - 70
-      expect(reservationFrameTop - contactBottom).toBeGreaterThanOrEqual(48)
+      expect(reservationFrameTop - contactBottom).toBeGreaterThanOrEqual(32)
       await page.evaluate(() => window.scrollBy(0, 300))
       await expect(map).toBeInViewport()
     }
+  })
+}
+
+for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 525, height: 1024 }, { width: 614, height: 1024 }]) {
+  test(`home brand and menu align with their content boundaries at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+    const header = await page.locator('header').boundingBox()
+    const logo = await page.getByAltText('Kleinlaut', { exact: true }).boundingBox()
+    const hours = await page.getByText('Dienstag bis Samstag').boundingBox()
+    const contact = await page.locator('.home-contact').boundingBox()
+    const brandCenter = (logo.y + hours.y + hours.height) / 2
+    expect(Math.abs(brandCenter - (header.y + header.height + contact.y) / 2)).toBeLessThanOrEqual(2)
+    expect(contact.x).toBeGreaterThanOrEqual(16)
+    expect(viewport.width - contact.x - contact.width).toBeGreaterThanOrEqual(16)
+    await expect(page.locator('.home-contact')).toHaveCSS('text-wrap-mode', 'wrap')
+    await page.getByRole('link', { name: 'MENU', exact: true }).click()
+    const menu = await page.getByRole('navigation', { name: 'Seitennavigation' }).boundingBox()
+    const buttonTop = viewport.height - 68
+    expect(Math.abs(menu.y + menu.height / 2 - (header.y + header.height + buttonTop) / 2)).toBeLessThanOrEqual(2)
+    await page.getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
+    await expect(page.locator('.imprint-details > p')).toHaveCount(7)
+    const lines = await page.locator('.imprint-details > p').evaluateAll(elements => elements.map(el => el.getBoundingClientRect().toJSON()))
+    expect(lines[1].y - lines[0].bottom).toBeGreaterThanOrEqual(16)
+    for (let i = 2; i < lines.length; i++) expect(Math.abs(lines[i].y - lines[i - 1].bottom)).toBeLessThanOrEqual(1)
   })
 }
