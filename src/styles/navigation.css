@@ -21,8 +21,11 @@
 }
 html.navigation-open { background: #000; }
 .navigation-open .top-bar { background: #ff0; color: #000; }
-/* The black backing covers Safari's translucent chrome. Only the content uses
-   the current visible viewport, so its center remains above the reservation. */
+/* Safari can clip fixed layers above its translucent bottom toolbar. Hide the
+   inert page content too, so the document behind that toolbar paints black.
+   Keep its layout intact to preserve the scroll position when the menu closes. */
+.navigation-open .site-page > [inert] { visibility: hidden; }
+/* Only the menu content uses the visible viewport; its backing extends farther. */
 .nav13-dialog {
   position: fixed;
   inset: 0 0 auto;

@@ -33,6 +33,27 @@ async function expectReachable(locator, page) {
   expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize().height + 1)
 }
 
+async function coloredPixelsInBottomStrip(page) {
+  const { width, height } = page.viewportSize()
+  const screenshot = await page.screenshot({ clip: { x: 0, y: height - 100, width, height: 100 } })
+  return page.evaluate(async base64 => {
+    const image = new Image()
+    image.src = `data:image/png;base64,${base64}`
+    await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = image.naturalWidth
+    canvas.height = image.naturalHeight
+    const context = canvas.getContext('2d')
+    context.drawImage(image, 0, 0)
+    const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
+    let colored = 0
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] || data[i + 1] || data[i + 2]) colored++
+    }
+    return colored
+  }, screenshot.toString('base64'))
+}
+
 test.beforeEach(async ({ page }) => {
   // Isolate layout/navigation from third-party outages and reservation overlays.
   // Live fonts, the actual reservation widget and social-app webviews need a separate smoke check.
@@ -540,6 +561,34 @@ test('reservation widget remains clickable and keyboard reachable above the menu
   await expect(page.getByRole('dialog')).not.toBeVisible()
   expect(await page.locator('.home-hero').evaluate(el => el.inert)).toBe(false)
 })
+
+for (const { name, path, scrollTo } of [
+  { name: 'home hero', path: '/', scrollTo: null },
+  { name: 'home map', path: '/', scrollTo: '.home-map' },
+  { name: 'scrolled gallery', path: '/fotos', scrollTo: '.gallery-photo:nth-child(3)' },
+]) {
+  test(`menu keeps the document black behind clipped Safari chrome over ${name}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto(path)
+    if (scrollTo) await page.locator(scrollTo).evaluate(el => el.scrollIntoView())
+    await expect.poll(() => coloredPixelsInBottomStrip(page)).toBeGreaterThan(100)
+    const before = await page.evaluate(() => ({ y: scrollY, height: document.documentElement.scrollHeight }))
+    await page.getByRole('button', { name: 'Menü öffnen' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Menü', exact: true })
+    // Model Safari clipping fixed layers at the top of its translucent toolbar.
+    // The exposed document must itself be black, regardless of dialog height.
+    await dialog.evaluate(el => el.style.clipPath = `inset(0 0 ${el.getBoundingClientRect().bottom - innerHeight + 120}px 0)`)
+    expect(await coloredPixelsInBottomStrip(page)).toBe(0)
+    expect(await page.evaluate(() => ({ y: scrollY, height: document.documentElement.scrollHeight }))).toEqual(before)
+    await expect(page.locator('.nav13-panel-bar')).toHaveCSS('background-color', 'rgb(255, 255, 0)')
+    await expect(dialog.getByRole('link', { name: 'FOTOS', exact: true })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog).not.toBeVisible()
+    await expect.poll(() => coloredPixelsInBottomStrip(page)).toBeGreaterThan(100)
+    expect(await page.evaluate(() => ({ y: scrollY, height: document.documentElement.scrollHeight }))).toEqual(before)
+  })
+}
 
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
