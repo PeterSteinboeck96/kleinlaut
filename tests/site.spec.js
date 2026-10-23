@@ -44,7 +44,7 @@ test.beforeEach(async ({ page }) => {
 
 test('home preserves content, contact links and responsive assets', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('link', { name: 'MENU', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Kleinlaut – Startseite' })).toBeVisible()
   await expect(page.getByText('Dienstag bis Samstag')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Anruf' })).toHaveAttribute('href', 'tel:+4366499224120')
   await expect(page.getByRole('link', { name: 'Mail', exact: true })).toHaveAttribute('href', 'mailto:hallo@kleinlaut.wien')
@@ -59,9 +59,9 @@ test('home preserves content, contact links and responsive assets', async ({ pag
 
 test('menu links, PDF, history and return navigation work', async ({ page, request }) => {
   await page.goto('/')
-  await page.getByRole('link', { name: 'MENU', exact: true }).click()
+  await page.goto('/menu')
   await expect(page).toHaveURL('/menu')
-  const pdf = page.getByRole('link', { name: 'DRINKS', exact: true })
+  const pdf = page.locator('.menu-links').getByRole('link', { name: 'DRINKS', exact: true })
   await expect(pdf).toHaveAttribute('target', '_blank')
   const response = await request.get(await pdf.getAttribute('href'))
   expect(response.ok()).toBeTruthy()
@@ -69,12 +69,12 @@ test('menu links, PDF, history and return navigation work', async ({ page, reque
   expect((await response.body()).subarray(0, 5).toString()).toBe('%PDF-')
 
   for (const [name, path] of [['FOTOS', '/fotos'], ['RAUMPLAN', '/raumplan'], ['IMPRESSUM', '/impressum']]) {
-    await page.getByRole('link', { name, exact: true }).click()
+    await page.locator('.menu-links').getByRole('link', { name, exact: true }).click()
     await expect(page).toHaveURL(path)
     await page.goBack()
-    await expect(page.getByRole('link', { name: 'ZURÜCK' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Kleinlaut – Startseite' })).toBeVisible()
   }
-  await page.getByRole('link', { name: 'ZURÜCK' }).click()
+  await page.getByRole('link', { name: 'Kleinlaut – Startseite' }).click()
   await expect(page).toHaveURL('/')
 })
 
@@ -87,9 +87,9 @@ test('gallery retains all photos, numeric order and scroll navigation', async ({
   await expect.poll(() => photos.first().evaluate((img) => img.naturalWidth)).toBeGreaterThan(0)
   await page.evaluate(() => window.scrollTo(0, 500))
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
-  await expect(page.getByRole('link', { name: 'MENU', exact: true })).toBeInViewport()
-  await page.getByRole('link', { name: 'MENU', exact: true }).click()
-  await page.getByRole('link', { name: 'FOTOS', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Kleinlaut – Startseite' })).toBeInViewport()
+  await page.goto('/menu')
+  await page.locator('.menu-links').getByRole('link', { name: 'FOTOS', exact: true }).click()
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
 })
 
@@ -121,7 +121,7 @@ for (const viewport of viewports) {
     for (const route of routes) {
       await page.goto(route)
       await expectNoHorizontalOverflow(page)
-      const headerLink = page.locator('header a')
+      const headerLink = page.getByRole('link', { name: 'Kleinlaut – Startseite' })
       const headerBox = await headerLink.boundingBox()
       expect(headerBox.height).toBeGreaterThanOrEqual(44)
       await expectCentered(headerLink, page)
@@ -134,7 +134,7 @@ for (const viewport of viewports) {
       }
       if (route === '/menu') {
         for (const name of ['DRINKS', 'FOTOS', 'RAUMPLAN', 'IMPRESSUM']) {
-          const link = page.getByRole('link', { name, exact: true })
+          const link = page.locator('.menu-links').getByRole('link', { name, exact: true })
           await expectCentered(link, page)
           await expectReachable(link, page)
           const box = await link.boundingBox()
@@ -174,14 +174,14 @@ test('resizing from portrait to short landscape and back keeps navigation usable
   await page.goto('/')
   await page.setViewportSize({ width: 844, height: 390 })
   await expectNoHorizontalOverflow(page)
-  await page.getByRole('link', { name: 'MENU', exact: true }).click()
-  await page.getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
+  await page.goto('/menu')
+  await page.locator('.menu-links').getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
   await expectReachable(page.getByText('Gastronomie Betrieb'), page)
   await page.setViewportSize({ width: 390, height: 600 })
   await expectCentered(page.getByText('JP Frameworks GmbH'), page)
   await expectReachable(page.getByText('Gastronomie Betrieb'), page)
-  await page.getByRole('link', { name: 'MENU', exact: true }).click()
-  await page.getByRole('link', { name: 'ZURÜCK', exact: true }).click()
+  await page.goto('/menu')
+  await page.getByRole('link', { name: 'Kleinlaut – Startseite' }).click()
   await expectReachable(page.getByRole('link', { name: 'Mail', exact: true }), page)
   await expectNoHorizontalOverflow(page)
 })
@@ -219,7 +219,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
     expect(buttonBox.x).toBeGreaterThanOrEqual(0)
     expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(viewport.width)
     const topBar = await page.locator('header').boundingBox()
-    expect(topBar.height).toBe(44 + 52)
+    expect(topBar.height).toBe(44 + 64)
     if (viewport.height > 480) {
       for (const name of ['Anruf', 'DMs', 'Mail']) {
         const linkBox = await page.getByRole('link', { name, exact: true }).boundingBox()
@@ -252,11 +252,11 @@ for (const width of [320, 390]) {
       if (path === '/') await expectReachable(page.getByRole('link', { name: 'Mail', exact: true }), page)
       if (path === '/menu') {
         for (const name of ['DRINKS', 'FOTOS', 'RAUMPLAN', 'IMPRESSUM']) {
-          const link = page.getByRole('link', { name, exact: true })
+          const link = page.locator('.menu-links').getByRole('link', { name, exact: true })
           await expectCentered(link, page)
           await expectReachable(link, page)
         }
-        await page.getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
+        await page.locator('.menu-links').getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
         await expect(page).toHaveURL('/impressum')
       }
       if (path === '/impressum') await expectReachable(page.getByText('Gastronomie Betrieb'), page)
@@ -312,11 +312,11 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     expect(contact.x).toBeGreaterThanOrEqual(16)
     expect(viewport.width - contact.x - contact.width).toBeGreaterThanOrEqual(16)
     await expect(page.locator('.home-contact')).toHaveCSS('text-wrap-mode', 'wrap')
-    await page.getByRole('link', { name: 'MENU', exact: true }).click()
+    await page.goto('/menu')
     const menu = await page.getByRole('navigation', { name: 'Seitennavigation' }).boundingBox()
     const buttonTop = viewport.height - 68
     expect(Math.abs(menu.y + menu.height / 2 - (header.y + header.height + buttonTop) / 2)).toBeLessThanOrEqual(2)
-    await page.getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
+    await page.locator('.menu-links').getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
     await expect(page.locator('.imprint-details > p')).toHaveCount(7)
     const lines = await page.locator('.imprint-details > p').evaluateAll(elements => elements.map(el => el.getBoundingClientRect().toJSON()))
     expect(lines[1].y - lines[0].bottom).toBeGreaterThanOrEqual(16)
@@ -361,3 +361,63 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
     expect(await contact.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(documentTop, 0)
   })
 }
+
+for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }, { width: 1440, height: 900 }]) {
+  test(`Navigation13 routes, PDF and contact actions work at ${viewport.width}px`, async ({ page, request }) => {
+    await page.setViewportSize(viewport)
+    await page.goto('/')
+    const mobile = viewport.width < 1024
+    async function navigation() {
+      if (mobile) {
+        await page.getByRole('button', { name: 'Menü öffnen' }).click()
+        await expect(page.getByRole('dialog', { name: 'Menü', exact: true })).toBeVisible()
+        return page.getByRole('navigation', { name: 'Mobile Seitennavigation' })
+      }
+      return page.getByRole('navigation', { name: 'Hauptnavigation' })
+    }
+    let nav = await navigation()
+    const pdf = nav.getByRole('link', { name: 'DRINKS', exact: true })
+    await expect(pdf).toHaveAttribute('target', '_blank')
+    expect((await request.get(await pdf.getAttribute('href'))).ok()).toBeTruthy()
+    await nav.getByRole('link', { name: 'FOTOS', exact: true }).click()
+    await expect(page).toHaveURL('/fotos')
+    await expect(page.getByRole('dialog')).not.toBeVisible()
+    expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden')
+    for (const [name, path] of [['RAUMPLAN', '/raumplan'], ['IMPRESSUM', '/impressum']]) {
+      nav = await navigation()
+      await nav.getByRole('link', { name, exact: true }).click()
+      await expect(page).toHaveURL(path)
+    }
+    await page.getByRole('link', { name: 'Kleinlaut – Startseite' }).click()
+    await expect(page).toHaveURL('/')
+    await expectNoHorizontalOverflow(page)
+  })
+}
+
+test('mobile menu traps focus, closes with Escape, restores scrolling and closes on desktop resize', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+  const opener = page.getByRole('button', { name: 'Menü öffnen' })
+  const dialog = page.getByRole('dialog', { name: 'Menü', exact: true })
+  await opener.click()
+  await expect(dialog.getByRole('button', { name: 'Menü schließen' })).toBeFocused()
+  for (let i = 0; i < 12; i++) {
+    await page.keyboard.press('Tab')
+    expect(await dialog.evaluate(el => el.contains(document.activeElement))).toBeTruthy()
+  }
+  await page.keyboard.press('Escape')
+  await expect(dialog).not.toBeVisible()
+  await expect(opener).toBeFocused()
+  expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden')
+  await opener.click()
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await expect(dialog).not.toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  await page.setViewportSize({ width: 320, height: 568 })
+  await opener.click()
+  await dialog.getByRole('link', { name: 'Instagram' }).scrollIntoViewIfNeeded()
+  await expect(dialog.getByRole('link', { name: 'Instagram' })).toBeInViewport()
+  await dialog.getByRole('button', { name: 'Menü schließen' }).click()
+  await expect(dialog).not.toBeVisible()
+})
