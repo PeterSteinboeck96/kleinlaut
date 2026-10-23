@@ -116,28 +116,30 @@ export default function Navigation13() {
         </div>
       </nav>
       <dialog ref={dialogRef} id="nav13-menu" className="nav13-dialog" aria-label="Menü" onKeyDown={keepFocusInMenu} onCancel={event => { event.preventDefault(); closeMenu() }}>
-        <AnimatePresence onExitComplete={finishClose}>
-          {open && <motion.div key="menu" className="nav13-panel" initial={reduceMotion ? false : { y: '-100%' }} animate={{ y: 0 }} exit={{ y: reduceMotion ? 0 : '-100%' }} transition={{ duration: reduceMotion ? 0 : 0.6, ease: EASE }}>
-            <div className="nav13-panel-bar">
-              <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Menü schließen">MENU</button>
-            </div>
-            <motion.nav className="nav13-menu-links" aria-label="Mobile Seitennavigation" initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.06, delayChildren: reduceMotion ? 0 : 0.2 } } }}>
-              {links.map(item => <NavLink key={item.label} item={item} onClick={event => {
-                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
-                // Changing routes earlier would unmount the menu before it can slide out.
-                if (item.to) event.preventDefault()
-                closeMenu(item.to ?? null)
-              }} className="nav13-menu-link" variants={{ hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 26 }, visible: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.5, ease: EASE } } }}>
-                <span className="font-display">{item.label}</span>
-              </NavLink>)}
-            </motion.nav>
-            <div className="nav13-footer">
-              <p>Wir freuen uns auf dich.</p>
-              <a href="mailto:hallo@kleinlaut.wien">hallo@kleinlaut.wien</a>
-              <div className="nav13-footer-actions"><a href="tel:+4366499224120">Anrufen</a><a href="https://www.instagram.com/kleinlaut1070/" target="_blank" rel="noreferrer">Instagram</a></div>
-            </div>
-          </motion.div>}
-        </AnimatePresence>
+        <div className="nav13-panel-bar">
+          <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Menü schließen">MENU</button>
+        </div>
+        <div className="nav13-menu-viewport">
+          <AnimatePresence onExitComplete={finishClose}>
+            {open && <motion.div key="menu" className="nav13-panel" initial={reduceMotion ? false : { y: '-100%' }} animate={{ y: 0 }} exit={{ y: reduceMotion ? 0 : '-100%' }} transition={{ duration: reduceMotion ? 0 : 0.6, ease: EASE }}>
+              <motion.nav className="nav13-menu-links" aria-label="Mobile Seitennavigation" initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.06, delayChildren: reduceMotion ? 0 : 0.2 } } }}>
+                {links.map(item => <NavLink key={item.label} item={item} onClick={event => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
+                  // Changing routes earlier would unmount the menu before it can slide out.
+                  if (item.to) event.preventDefault()
+                  closeMenu(item.to ?? null)
+                }} className="nav13-menu-link" variants={{ hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 26 }, visible: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.5, ease: EASE } } }}>
+                  <span className="font-display">{item.label}</span>
+                </NavLink>)}
+              </motion.nav>
+              <div className="nav13-footer">
+                <p>Wir freuen uns auf dich.</p>
+                <a href="mailto:hallo@kleinlaut.wien">hallo@kleinlaut.wien</a>
+                <div className="nav13-footer-actions"><a href="tel:+4366499224120">Anrufen</a><a href="https://www.instagram.com/kleinlaut1070/" target="_blank" rel="noreferrer">Instagram</a></div>
+              </div>
+            </motion.div>}
+          </AnimatePresence>
+        </div>
       </dialog>
     </header>
   )

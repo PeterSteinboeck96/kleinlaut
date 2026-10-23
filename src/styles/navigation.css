@@ -27,10 +27,15 @@
 /* Native dialog keeps keyboard focus and the provider widget behind the menu. */
 .nav13-dialog { position: fixed; inset: 0; width: 100%; max-width: none; height: var(--viewport-height); max-height: none; margin: 0; padding: 0; border: 0; background: transparent; color: #000; overflow: hidden; }
 .nav13-dialog::backdrop { background: transparent; }
-.nav13-panel { display: flex; flex-direction: column; height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: var(--safe-top) var(--page-gutter) calc(2rem + var(--safe-bottom)); background: #ff0; }
+.nav13-menu-viewport { position: absolute; inset: var(--header-height) 0 0; overflow: hidden; }
+.nav13-panel { display: flex; flex-direction: column; height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--page-gutter) calc(2rem + var(--safe-bottom)); background: #000; color: #ff0; }
 .nav13-panel-bar {
-  flex-shrink: 0;
-  margin-inline: calc(-1 * var(--page-gutter));
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  padding-top: var(--safe-top);
+  background: #ff0;
+  color: #000;
 }
 .nav13-menu-links { display: flex; flex-direction: column; margin-top: 1.5rem; }
 .nav13-menu-link { display: flex; align-items: center; justify-content: center; min-height: 44px; padding-block: clamp(1rem, 3vh, 1.5rem); text-align: center; }
