@@ -28,7 +28,7 @@ export default function DrinksPage() {
               alt="Kleinlaut"
             />
             <p
-              className="mt-4 font-body font-medium text-[0.9rem] leading-snug text-accent animate-fade-rise sm:mt-2 sm:text-lg"
+              className="mt-4 font-body font-bold text-[0.9rem] leading-snug text-accent animate-fade-rise sm:mt-2 sm:text-lg"
             >
               Dienstag bis Samstag<br />18:00 - 02:00
             </p>
