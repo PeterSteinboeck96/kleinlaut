@@ -186,12 +186,22 @@ for (const viewport of viewports) {
         const photos = page.getByRole('img', { name: /^Foto aus der Kleinlaut-Galerie/ })
         const [first, second, third] = await Promise.all([photos.nth(0).boundingBox(), photos.nth(1).boundingBox(), photos.nth(2).boundingBox()])
         expect(first.x).toBe(0)
-        expect(first.width).toBe(viewport.width)
         expect(first.y).toBeCloseTo(headerBox.height, 0)
-        expect(first.y + first.height).toBeGreaterThanOrEqual(viewport.height)
-        expect(second.y).toBeCloseTo(first.y + first.height, 0)
-        if (viewport.width < 640) expect(third.y).toBeGreaterThan(second.y)
-        else expect(Math.abs(second.y - third.y)).toBeLessThanOrEqual(1)
+        if (viewport.width < 1024) {
+          expect(first.width).toBe(viewport.width)
+          expect(first.y + first.height).toBeGreaterThanOrEqual(viewport.height)
+          expect(second.y).toBeCloseTo(first.y + first.height, 0)
+          if (viewport.width < 640) expect(third.y).toBeGreaterThan(second.y)
+          else expect(Math.abs(second.y - third.y)).toBeLessThanOrEqual(1)
+        } else {
+          const columns = viewport.width >= 1536 ? 5 : viewport.width >= 1280 ? 4 : 3
+          expect(first.width).toBeCloseTo(viewport.width / columns, 0)
+          expect(first.height).toBeCloseTo(second.height, 0)
+          expect(second.y).toBeCloseTo(first.y, 0)
+          expect(third.y).toBeCloseTo(first.y, 0)
+          expect(second.x).toBeCloseTo(first.width, 0)
+          expect(third.x).toBeCloseTo(first.width + second.width, 0)
+        }
       }
       await expectNoHorizontalOverflow(page)
     }

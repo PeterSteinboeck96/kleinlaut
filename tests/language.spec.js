@@ -84,8 +84,16 @@ test.describe('English page content', () => {
           await expect(page.getByRole('img', { name: /^Photo from the Kleinlaut gallery/ })).toHaveCount(60)
           await expect(page.locator('.gallery-caption')).toHaveText('The colourful barin the heartof Vienna <3')
           const first = await page.locator('.gallery-photo').first().boundingBox()
-          expect(first.width).toBe(viewport.width)
-          expect(first.y + first.height).toBeGreaterThanOrEqual(viewport.height)
+          if (viewport.width < 1024) {
+            expect(first.width).toBe(viewport.width)
+            expect(first.y + first.height).toBeGreaterThanOrEqual(viewport.height)
+          } else {
+            const second = await page.locator('.gallery-photo').nth(1).boundingBox()
+            expect(first.width).toBeCloseTo(second.width, 0)
+            expect(first.height).toBeCloseTo(second.height, 0)
+            expect(first.width).toBeLessThan(viewport.width)
+            expect(second.y).toBeCloseTo(first.y, 0)
+          }
         }
         if (path === '/raumplan') {
           const plan = page.getByRole('img', { name: /^Floor plan/ })
@@ -116,5 +124,13 @@ test('resizing reorders mobile photo three without losing images or changing the
     await expect(photos).toHaveCount(60)
     await expect.poll(() => photos.evaluateAll(images => images.map(image => Number(image.src.match(/\/(\d+)-/)[1])))).toEqual(width < 1024 ? [...original.filter(number => number !== 3), 3] : original)
     await expect(photos.first()).toHaveAttribute('src', /\/1-/)
+    const [first, second] = await Promise.all([photos.first().boundingBox(), photos.nth(1).boundingBox()])
+    if (width < 1024) {
+      expect(first.width).toBe(width)
+      expect(second.y).toBeCloseTo(first.y + first.height, 0)
+    } else {
+      expect(first.width).toBeCloseTo(width / (width >= 1280 ? 4 : 3), 0)
+      expect(second.y).toBeCloseTo(first.y, 0)
+    }
   }
 })
