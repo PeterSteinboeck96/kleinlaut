@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'motion/react'
 import AnimatedMenuLinks from './AnimatedMenuLinks.jsx'
+import NewsBar from './NewsBar.jsx'
 import { useMenuTransition } from './MenuTransition.jsx'
 import { copy } from '../i18n.js'
 import '../styles/pages.css'
@@ -9,8 +10,10 @@ import '../styles/navigation.css'
 
 function keepFocusInMenu(event) {
   if (event.key !== 'Tab') return
+  const dialog = event.currentTarget.querySelector('dialog')
   const controls = [
-    ...event.currentTarget.querySelectorAll('a[href], button:not([disabled])'),
+    ...event.currentTarget.querySelectorAll('.news-toggle, .news-static'),
+    ...dialog.querySelectorAll('a[href], button:not([disabled])'),
     ...document.querySelectorAll('iframe.molzait'),
   ]
   if (!controls.length) return
@@ -113,7 +116,11 @@ export default function Navigation13({ onBack } = {}) {
   }, [])
 
   return (
-    <header className="top-bar nav13" data-input={keyboardFocus ? 'keyboard' : 'pointer'}>
+    <header className="top-bar nav13" data-input={keyboardFocus ? 'keyboard' : 'pointer'} onKeyDown={event => {
+      if (!dialogRef.current?.open) return
+      if (event.key === 'Escape') { event.preventDefault(); closeMenu() }
+      else keepFocusInMenu(event)
+    }}>
       <nav className="nav13-bar" aria-label={copy.navigation}>
         {isMenuPage ? <Link to="/" className="nav13-toggle font-display" onClick={event => {
           if (!onBack || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
@@ -124,10 +131,8 @@ export default function Navigation13({ onBack } = {}) {
           <Link ref={desktopRef} className="nav13-toggle nav13-desktop font-display" to="/menu">{copy.menu}</Link>
         </>}
       </nav>
-      <dialog ref={dialogRef} id="nav13-menu" className="nav13-dialog" aria-label={copy.menuDialog} onKeyDown={event => {
-        if (event.key === 'Escape') { event.preventDefault(); closeMenu() }
-        else keepFocusInMenu(event)
-      }} onCancel={event => { event.preventDefault(); closeMenu() }}>
+      <NewsBar />
+      <dialog ref={dialogRef} id="nav13-menu" className="nav13-dialog" aria-label={copy.menuDialog} onCancel={event => { event.preventDefault(); closeMenu() }}>
         <div className="nav13-panel-bar">
           <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label={copy.goHome}>{copy.home}</button>
         </div>

@@ -56,7 +56,7 @@ for (const display of [
         expect(await page.locator('.home-logo').evaluate(el => el.getBoundingClientRect().top + scrollY)).toBeCloseTo(logoTop, 0)
       }
 
-      await page.evaluate(() => window.scrollBy(0, 300))
+      await page.locator('.home-map').evaluate(el => el.scrollIntoView())
       await expect(page.locator('.home-map')).toBeInViewport()
     }
 

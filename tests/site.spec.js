@@ -146,7 +146,7 @@ for (const viewport of viewports) {
       await page.goto(route)
       await expectNoHorizontalOverflow(page)
       const headerLink = page.getByRole('navigation', { name: 'Hauptnavigation' })
-      const headerBox = await headerLink.boundingBox()
+      const headerBox = await page.locator('header').boundingBox()
       expect(headerBox.height).toBeGreaterThanOrEqual(44)
       await expectCentered(headerLink, page)
 
@@ -258,7 +258,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
     expect(buttonBox.x).toBeGreaterThanOrEqual(0)
     expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(viewport.width)
     const topBar = await page.locator('header').boundingBox()
-    expect(topBar.height).toBe(44 + 52)
+    expect(topBar.height).toBe(44 + 52 * 2)
     if (viewport.height > 480) {
       for (const name of ['ruf uns gerne an', 'Instagram', 'E-Mail']) {
         const linkBox = await page.getByRole('link', { name, exact: true }).boundingBox()
@@ -470,7 +470,7 @@ test('mobile menu traps focus, closes with Escape, restores scrolling and closes
   await expect(dialog.getByRole('button', { name: 'Zurück' })).toBeFocused()
   for (let i = 0; i < 12; i++) {
     await page.keyboard.press('Tab')
-    expect(await dialog.evaluate(el => el.contains(document.activeElement))).toBeTruthy()
+    expect(await page.evaluate(() => Boolean(document.activeElement.closest('.nav13-dialog, .news-bar')))).toBeTruthy()
   }
   await page.keyboard.press('Escape')
   await expect(dialog).not.toBeVisible()
@@ -535,7 +535,7 @@ for (const start of ['/fotos', '/raumplan', '/impressum']) {
     await page.getByRole('button', { name: 'Menü öffnen' }).click()
     const dialog = page.getByRole('dialog', { name: 'Menü', exact: true })
     const panel = dialog.locator('.nav13-panel')
-    const panelTop = await page.locator('.nav13-panel-bar').evaluate(el => el.getBoundingClientRect().bottom)
+    const panelTop = await page.locator('.news-bar').evaluate(el => el.getBoundingClientRect().bottom)
     await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(panelTop, 0)
     expect(await dialog.evaluate(el => getComputedStyle(el, '::backdrop').backgroundColor)).toBe('rgba(0, 0, 0, 0)')
     await expect(dialog.getByRole('link', { name: 'IMPRESSUM', exact: true })).toHaveCSS('opacity', '1')
@@ -588,15 +588,23 @@ test('mobile page links wait for the closing animation before navigating', async
   await page.goto('/')
   await page.getByRole('button', { name: 'Menü öffnen' }).click()
   const panel = page.locator('.nav13-panel')
-  const panelTop = await page.locator('.nav13-panel-bar').evaluate(el => el.getBoundingClientRect().bottom)
+  const panelTop = await page.locator('.news-bar').evaluate(el => el.getBoundingClientRect().bottom)
   await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(panelTop, 0)
   await expect(page.getByRole('dialog').getByRole('link', { name: 'IMPRESSUM', exact: true })).toHaveCSS('opacity', '1')
-  const firstLink = page.getByRole('dialog').getByRole('link', { name: 'DRINKS', exact: true })
+  await page.evaluate(() => {
+    window.menuExitFrames = []
+    const capture = () => {
+      const panel = document.querySelector('.nav13-panel')
+      const link = panel?.querySelector('a')
+      if (!link) return
+      window.menuExitFrames.push({ path: location.pathname, opacity: Number(getComputedStyle(link).opacity), transform: getComputedStyle(panel).transform })
+      requestAnimationFrame(capture)
+    }
+    requestAnimationFrame(capture)
+  })
   await page.getByRole('dialog').getByRole('link', { name: 'FOTOS', exact: true }).click()
-  await expect.poll(() => firstLink.evaluate(el => Number(getComputedStyle(el).opacity))).toBeLessThan(0.99)
-  await expect(panel).toHaveCSS('transform', 'none')
-  await expect(page).toHaveURL('/')
   await expect(page).toHaveURL('/fotos')
+  expect(await page.evaluate(() => window.menuExitFrames.some(frame => frame.path === '/' && frame.opacity > 0 && frame.opacity < 0.99 && frame.transform === 'none'))).toBe(true)
   await expect(page.getByRole('dialog')).not.toBeVisible()
 })
 
@@ -751,7 +759,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     await expectCentered(links, page)
     await expect(links).toHaveCSS('font-weight', '800')
     const textBox = await links.boundingBox()
-    const headerBox = await header.boundingBox()
+    const headerBox = await page.locator('header').boundingBox()
     const reservationTop = viewport.height - 100 - 34 - 68
     expect(Math.abs(textBox.y + textBox.height / 2 - (headerBox.y + headerBox.height + reservationTop) / 2)).toBeLessThanOrEqual(2)
     await page.keyboard.press('Escape')

@@ -102,7 +102,7 @@ test.describe('English page content', () => {
           await expect(plan.locator('text')).toHaveText(['Garden', 'Back room'])
           await expect(plan.locator('desc')).toHaveText('Garden, Séparée, Bar, WC, Floor, Back room')
           const box = await plan.boundingBox()
-          expect(box.y).toBeGreaterThanOrEqual(52)
+          expect(box.y).toBeGreaterThanOrEqual((await page.locator('header').boundingBox()).height)
           expect(box.y + box.height).toBeLessThanOrEqual(viewport.height - 68)
           await page.evaluate(() => window.scrollTo(0, 500))
           expect(await page.evaluate(() => scrollY)).toBe(0)

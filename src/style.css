@@ -22,7 +22,8 @@
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-inline: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
     --header-bar-height: 3.25rem;
-    --header-height: calc(var(--header-bar-height) + var(--safe-top));
+    --menu-header-height: calc(var(--header-bar-height) + var(--safe-top));
+    --header-height: calc(var(--menu-header-height) + var(--header-bar-height));
     --page-gutter: max(clamp(1rem, 4vw, 3rem), var(--safe-inline));
     --widget-clearance: 5.5rem;
     /* The reservation button is 44px tall with a 24px bottom margin. */
@@ -71,9 +72,9 @@
 @layer components {
   .site-page {
     min-height: var(--viewport-height);
-    /* Match the fixed header's placeholder when the document rubber-bands.
-       A border keeps this strip yellow independently of each page background. */
-    border-top: var(--header-height) solid #ff0;
+    /* Match both fixed bars when the document rubber-bands. */
+    border-top: var(--menu-header-height) solid #ff0;
+    padding-top: var(--header-bar-height);
     background: #000;
   }
 
