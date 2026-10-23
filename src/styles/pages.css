@@ -129,9 +129,9 @@
 .gallery-scroll-hint {
   position: fixed;
   z-index: 40;
-  /* Match the reservation button's 44px height and 24px outer spacing. */
+  /* Match the widget height/bottom inset; offset the arrow optically from the left. */
   bottom: calc(var(--safe-bottom) + 24px);
-  left: calc(env(safe-area-inset-left, 0px) + 24px);
+  left: calc(env(safe-area-inset-left, 0px) + 32px);
   width: 44px;
   height: 44px;
   color: #ff0;

@@ -44,7 +44,7 @@ export default function FotosPage() {
       </div>}
       <div className="gallery-scroll-hint" aria-hidden="true">
         <svg viewBox="0 0 44 44" fill="currentColor" focusable="false">
-          <path d="M18 3h8v23l8-8 6 6-18 18L4 24l6-6 8 8Z" />
+          <path d="M14 2h16v12.29h8L22 42 6 14.29h8Z" />
         </svg>
       </div>
       <div className="gallery-content" ref={galleryRef}>
