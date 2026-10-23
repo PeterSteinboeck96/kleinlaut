@@ -3,7 +3,8 @@
 }
 
 .menu-page .page-panel {
-  padding-bottom: calc(var(--space-6) + var(--safe-bottom) + var(--reservation-button-space));
+  /* Match the mobile menu's centering relative to the yellow bar. */
+  padding-bottom: calc(var(--space-6) + var(--safe-bottom) + var(--reservation-button-space) + var(--header-bar-height));
 }
 
 .menu-links {
