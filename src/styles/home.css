@@ -88,13 +88,20 @@
 }
 
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .home-hero-content {
+    min-height: calc(var(--viewport-height) - var(--header-height));
+    grid-template-rows: minmax(min-content, 1fr) calc(var(--reservation-button-space) + var(--safe-bottom));
+  }
+
   .home-contact {
     /* Keep the copy centered, leaving room on both sides for the provider's
-       210px frame plus a 32px gap. Its button ends 24px above the safe area;
-       compensate for the font's descent/leading to align the visible text. */
+       210px frame plus a 32px gap. Align the first line with the button's top,
+       compensating for the space above the font's visible letterforms. */
+    align-self: start;
     width: min(100%, 56rem);
     max-width: calc(100vw - 2 * (210px + var(--space-8) + var(--safe-inline)));
-    padding-bottom: calc(24px + var(--safe-bottom) - 0.4em);
+    margin-top: -0.3em;
+    padding-bottom: 0;
   }
 }
 
