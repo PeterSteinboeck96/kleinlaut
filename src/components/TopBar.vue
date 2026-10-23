@@ -15,7 +15,7 @@ import { useRoute } from 'vue-router'
 const props = defineProps({
   label: {
     type: String,
-    default: 'MENU',
+    default: 'MENU!',
   },
 })
 
