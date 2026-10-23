@@ -87,6 +87,17 @@
   text-wrap: pretty;
 }
 
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .home-contact {
+    /* Keep the copy centered, leaving room on both sides for the provider's
+       210px frame plus a 32px gap. Its button ends 24px above the safe area;
+       compensate for the font's descent/leading to align the visible text. */
+    width: min(100%, 56rem);
+    max-width: calc(100vw - 2 * (210px + var(--space-8) + var(--safe-inline)));
+    padding-bottom: calc(24px + var(--safe-bottom) - 0.4em);
+  }
+}
+
 .home-map {
   background: #000;
   /* Cover subpixel seams against the yellow root canvas in mobile WebKit. */
