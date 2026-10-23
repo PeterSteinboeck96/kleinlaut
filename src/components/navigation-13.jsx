@@ -37,13 +37,9 @@ function NavLink({ item, ...props }) {
 function applyMenuTheme() {
   const root = document.documentElement
   const wasOpen = root.classList.contains('navigation-open')
-  const theme = document.querySelector('meta[name="theme-color"]')
-  const previousColor = theme?.getAttribute('content')
   root.classList.add('navigation-open')
-  theme?.setAttribute('content', '#000000')
   return () => {
     root.classList.toggle('navigation-open', wasOpen)
-    if (theme && previousColor !== null) theme.setAttribute('content', previousColor)
   }
 }
 
@@ -134,7 +130,7 @@ export default function Navigation13() {
   return (
     <header className="top-bar nav13" data-input={keyboardFocus ? 'keyboard' : 'pointer'}>
       <nav className="nav13-bar" aria-label="Hauptnavigation">
-        {isMenuPage ? <Link to="/" className="nav13-toggle font-display">START</Link> : <>
+        {isMenuPage ? <Link to="/" className="nav13-toggle font-display">ZURÜCK</Link> : <>
           <button ref={triggerRef} className="nav13-toggle nav13-mobile font-display" type="button" onClick={event => { setKeyboardFocus(event.detail === 0); setOpen(true) }} aria-expanded={open} aria-controls="nav13-menu" aria-label="Menü öffnen">MENU</button>
           <Link ref={desktopRef} className="nav13-toggle nav13-desktop font-display" to="/menu">MENU</Link>
         </>}
@@ -144,7 +140,7 @@ export default function Navigation13() {
         else keepFocusInMenu(event)
       }} onCancel={event => { event.preventDefault(); closeMenu() }}>
         <div className="nav13-panel-bar">
-          <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Zur Startseite">START</button>
+          <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Zur Startseite">ZURÜCK</button>
         </div>
         <div className="nav13-menu-viewport">
           <div className="nav13-panel">
