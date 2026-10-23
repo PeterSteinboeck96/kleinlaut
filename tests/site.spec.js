@@ -512,6 +512,34 @@ for (const start of ['/fotos', '/raumplan', '/impressum']) {
   })
 }
 
+for (const width of [1024, 1440, 1920]) {
+  test(`desktop menu animates its links in and out at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.goto('/')
+    for (const destination of ['/fotos', '/']) {
+      await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'MENU', exact: true }).click()
+      const nav = page.getByRole('navigation', { name: 'Seitennavigation', exact: true })
+      const links = nav.getByRole('link')
+      // Staggered entry: the first link becomes visible before the last one.
+      await expect.poll(() => links.evaluateAll(elements =>
+        elements.length === 4 && Number(getComputedStyle(elements[0]).opacity) > Number(getComputedStyle(elements.at(-1)).opacity)
+      ), { intervals: [10, 20, 50] }).toBe(true)
+      await expect(links.last()).toHaveCSS('opacity', '1')
+      await expectCentered(nav, page)
+      await expect(nav).toHaveCSS('transform', 'none')
+      await expect(page.locator('.menu-page')).toHaveCSS('background-color', 'rgb(0, 0, 0)')
+      if (destination === '/') await page.getByRole('link', { name: 'ZURÜCK', exact: true }).click()
+      else await nav.getByRole('link', { name: 'FOTOS', exact: true }).click()
+      // Navigation waits for the text to exit; the black page stays stationary.
+      await expect.poll(() => links.first().evaluate(el => Number(getComputedStyle(el).opacity)), { intervals: [10, 20, 50] }).toBeLessThan(0.99)
+      await expect(page).toHaveURL('/menu')
+      await expect(nav).toHaveCSS('transform', 'none')
+      await expect(page).toHaveURL(destination)
+    }
+  })
+}
+
 test('mobile page links wait for the closing animation before navigating', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.emulateMedia({ reducedMotion: 'no-preference' })

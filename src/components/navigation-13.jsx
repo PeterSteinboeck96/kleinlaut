@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import drinksPdf from '@/assets/pdfs/kleinlaut.pdf'
+import { AnimatePresence } from 'motion/react'
+import AnimatedMenuLinks from './AnimatedMenuLinks.jsx'
 import '../styles/pages.css'
 import '../styles/navigation.css'
-
-const EASE = [0.22, 1, 0.36, 1]
-const links = [
-  { label: 'DRINKS', href: drinksPdf },
-  { label: 'FOTOS', to: '/fotos' },
-  { label: 'RAUMPLAN', to: '/raumplan' },
-  { label: 'IMPRESSUM', to: '/impressum' },
-]
-const MotionLink = motion.create(Link)
 
 function keepFocusInMenu(event) {
   if (event.key !== 'Tab') return
@@ -28,12 +19,6 @@ function keepFocusInMenu(event) {
   controls[next].focus()
 }
 
-function NavLink({ item, ...props }) {
-  return item.to
-    ? <MotionLink to={item.to} {...props} />
-    : <motion.a href={item.href} target="_blank" rel="noreferrer" {...props} />
-}
-
 function applyMenuTheme() {
   const root = document.documentElement
   const wasOpen = root.classList.contains('navigation-open')
@@ -43,7 +28,7 @@ function applyMenuTheme() {
   }
 }
 
-export default function Navigation13() {
+export default function Navigation13({ onBack } = {}) {
   const { pathname } = useLocation()
   const isMenuPage = pathname === '/menu'
   const [open, setOpen] = useState(false)
@@ -56,7 +41,6 @@ export default function Navigation13() {
   const inertElementsRef = useRef([])
   const restoreThemeRef = useRef(null)
   const navigate = useNavigate()
-  const reduceMotion = useReducedMotion()
 
   function restorePage() {
     restoreThemeRef.current?.()
@@ -130,7 +114,11 @@ export default function Navigation13() {
   return (
     <header className="top-bar nav13" data-input={keyboardFocus ? 'keyboard' : 'pointer'}>
       <nav className="nav13-bar" aria-label="Hauptnavigation">
-        {isMenuPage ? <Link to="/" className="nav13-toggle font-display">ZURÜCK</Link> : <>
+        {isMenuPage ? <Link to="/" className="nav13-toggle font-display" onClick={event => {
+          if (!onBack || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
+          event.preventDefault()
+          onBack()
+        }}>ZURÜCK</Link> : <>
           <button ref={triggerRef} className="nav13-toggle nav13-mobile font-display" type="button" onClick={event => { setKeyboardFocus(event.detail === 0); setOpen(true) }} aria-expanded={open} aria-controls="nav13-menu" aria-label="Menü öffnen">MENU</button>
           <Link ref={desktopRef} className="nav13-toggle nav13-desktop font-display" to="/menu">MENU</Link>
         </>}
@@ -145,24 +133,11 @@ export default function Navigation13() {
         <div className="nav13-menu-viewport">
           <div className="nav13-panel">
             <AnimatePresence onExitComplete={finishClose}>
-              {open && <motion.nav key="menu-links" className="nav13-menu-links menu-links font-display" aria-label="Mobile Seitennavigation" initial="hidden" animate="visible" exit="exit" variants={{
-                hidden: {},
-                visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.06 } },
-                exit: { transition: { staggerChildren: reduceMotion ? 0 : 0.03 } },
-              }}>
-                {links.map(item => <NavLink key={item.label} item={item} onClick={event => {
-                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
-                  // Keep the menu mounted until its text has finished animating out.
-                  if (item.to) event.preventDefault()
-                  closeMenu(item.to ?? null)
-                }} className="nav13-menu-link" variants={{
-                  hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 26 },
-                  visible: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.5, ease: EASE } },
-                  exit: { opacity: 0, y: reduceMotion ? 0 : -12, transition: { duration: reduceMotion ? 0 : 0.2, ease: EASE } },
-                }}>
-                  <span className="font-display">{item.label}</span>
-                </NavLink>)}
-              </motion.nav>}
+              {open && <AnimatedMenuLinks key="menu-links" className="nav13-menu-links menu-links font-display" label="Mobile Seitennavigation" onSelect={(event, item) => {
+                // Keep the menu mounted until its text has finished animating out.
+                if (item.to) event.preventDefault()
+                closeMenu(item.to ?? null)
+              }} />}
             </AnimatePresence>
           </div>
         </div>

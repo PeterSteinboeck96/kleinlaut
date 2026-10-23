@@ -1,21 +1,31 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { AnimatePresence } from 'motion/react'
+import AnimatedMenuLinks from '../components/AnimatedMenuLinks.jsx'
 import TopBar from '../components/TopBar.jsx'
-import drinksPdf from '@/assets/pdfs/kleinlaut.pdf'
 import '../styles/pages.css'
 
 export default function MenuPage() {
+  const [destination, setDestination] = useState(null)
+  const navigate = useNavigate()
+
+  function closeMenu(path) {
+    setDestination(current => current ?? path)
+  }
+
   return (
     <section className="site-page menu-page">
-      <TopBar />
+      <TopBar onBack={() => closeMenu('/')} />
       <div className="page-panel">
-        <nav className="menu-links font-display" aria-label="Seitennavigation">
-          <a href={drinksPdf} target="_blank" rel="noreferrer">
-            DRINKS
-          </a>
-          <Link to="/fotos">FOTOS</Link>
-          <Link to="/raumplan">RAUMPLAN</Link>
-          <Link to="/impressum">IMPRESSUM</Link>
-        </nav>
+        <AnimatePresence onExitComplete={() => {
+          if (destination !== null) navigate(destination)
+        }}>
+          {destination === null && <AnimatedMenuLinks key="menu-links" onSelect={(event, item) => {
+            if (!item.to) return
+            event.preventDefault()
+            closeMenu(item.to)
+          }} />}
+        </AnimatePresence>
       </div>
     </section>
   )
