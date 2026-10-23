@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { ArrowUpRight } from 'lucide-react'
 import drinksPdf from '@/assets/pdfs/kleinlaut.pdf'
 import '../styles/navigation.css'
 
 const EASE = [0.22, 1, 0.36, 1]
 const links = [
+  { label: 'START', to: '/' },
   { label: 'DRINKS', href: drinksPdf },
   { label: 'FOTOS', to: '/fotos' },
   { label: 'RAUMPLAN', to: '/raumplan' },
@@ -122,19 +122,19 @@ export default function Navigation13() {
               <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Menü schließen">MENU</button>
             </div>
             <motion.nav className="nav13-menu-links" aria-label="Mobile Seitennavigation" initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.06, delayChildren: reduceMotion ? 0 : 0.2 } } }}>
-              {links.map((item, index) => <NavLink key={item.label} item={item} onClick={event => {
+              {links.map(item => <NavLink key={item.label} item={item} onClick={event => {
                 if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
                 // Changing routes earlier would unmount the menu before it can slide out.
                 if (item.to) event.preventDefault()
                 closeMenu(item.to ?? null)
               }} className="nav13-menu-link" variants={{ hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 26 }, visible: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.5, ease: EASE } } }}>
-                <span className="nav13-number" aria-hidden="true">0{index + 1}</span><span className="font-display">{item.label}</span><ArrowUpRight size={20} aria-hidden="true" />
+                <span className="font-display">{item.label}</span>
               </NavLink>)}
             </motion.nav>
             <div className="nav13-footer">
               <p>Wir freuen uns auf dich.</p>
               <a href="mailto:hallo@kleinlaut.wien">hallo@kleinlaut.wien</a>
-              <div className="nav13-footer-actions"><a href="tel:+4366499224120">Anrufen</a><a href="https://www.instagram.com/kleinlaut1070/" target="_blank" rel="noreferrer">Instagram <ArrowUpRight size={16} aria-hidden="true" /></a></div>
+              <div className="nav13-footer-actions"><a href="tel:+4366499224120">Anrufen</a><a href="https://www.instagram.com/kleinlaut1070/" target="_blank" rel="noreferrer">Instagram</a></div>
             </div>
           </motion.div>}
         </AnimatePresence>

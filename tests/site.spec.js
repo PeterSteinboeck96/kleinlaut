@@ -388,7 +388,8 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
       await nav.getByRole('link', { name, exact: true }).click()
       await expect(page).toHaveURL(path)
     }
-    await page.goto('/')
+    nav = await navigation()
+    await nav.getByRole('link', { name: 'START', exact: true }).click()
     await expect(page).toHaveURL('/')
     await expectNoHorizontalOverflow(page)
   })
@@ -444,7 +445,7 @@ for (const width of [390, 1440]) {
         await expect(action).toHaveCSS('border-top-width', '0px')
       }
       await page.keyboard.press('Tab')
-      await expect(page.getByRole('dialog').getByRole('link', { name: 'DRINKS', exact: true })).toHaveCSS('text-decoration-line', 'underline')
+      await expect(page.getByRole('dialog').getByRole('link', { name: 'START', exact: true })).toHaveCSS('text-decoration-line', 'underline')
       const closeBox = await close.boundingBox()
       expect(closeBox.x).toBe(0)
       expect(closeBox.width).toBe(width)
@@ -452,13 +453,13 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole('dialog')).not.toBeVisible()
     } else {
       const links = nav.getByRole('link')
-      await expect(links).toHaveCount(4)
+      await expect(links).toHaveCount(5)
       await expect(nav.getByRole('button')).toHaveCount(0)
       const boxes = await links.evaluateAll(elements => elements.map(el => {
         const rect = el.getBoundingClientRect()
         return { left: rect.left, right: rect.right, weight: getComputedStyle(el).fontWeight }
       }))
-      expect(Math.abs((boxes[0].left + boxes[3].right) / 2 - width / 2)).toBeLessThanOrEqual(1)
+      expect(Math.abs((boxes[0].left + boxes[4].right) / 2 - width / 2)).toBeLessThanOrEqual(1)
       for (let i = 0; i < boxes.length; i++) {
         expect(boxes[i].weight).toBe('800')
         if (i) expect(boxes[i].left - boxes[i - 1].right).toBeGreaterThanOrEqual(32)
