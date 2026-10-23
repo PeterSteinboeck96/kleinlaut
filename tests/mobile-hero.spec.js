@@ -63,6 +63,13 @@ for (const display of [
     await page.reload()
     await page.evaluate(() => window.scrollTo(0, 0))
     expect((await page.locator('.home-map').boundingBox()).y).toBeGreaterThanOrEqual(display.height)
+
+    await page.goto('/fotos')
+    const firstPhoto = await page.locator('.gallery-photo').first().boundingBox()
+    const header = await page.locator('header').boundingBox()
+    expect(firstPhoto.y).toBeCloseTo(header.height, 0)
+    expect(firstPhoto.y + firstPhoto.height).toBeGreaterThanOrEqual(display.height)
+    expect(firstPhoto.width).toBe(display.width)
   })
 }
 
@@ -90,11 +97,11 @@ test('rotation and restored pages update the cover without using a full-screen h
     window.dispatchEvent(new Event('resize'))
   })
   expect((await page.locator('.home-map').boundingBox()).y).toBeLessThan(956)
-  expect(await page.locator('.home-hero').evaluate(el => el.style.getPropertyValue('--home-screen-height'))).toBe('')
+  expect(await page.locator('.home-hero').evaluate(el => el.style.getPropertyValue('--mobile-screen-height'))).toBe('')
 
   // A landscape split window can coincidentally match the display's height.
   await page.evaluate(() => { window.testScreen = { width: 1366, height: 1024 } })
   await page.setViewportSize({ width: 1024, height: 700 })
   await expect.poll(() => page.locator('.home-map').evaluate(el => el.getBoundingClientRect().top)).toBeLessThan(1024)
-  expect(await page.locator('.home-hero').evaluate(el => el.style.getPropertyValue('--home-screen-height'))).toBe('')
+  expect(await page.locator('.home-hero').evaluate(el => el.style.getPropertyValue('--mobile-screen-height'))).toBe('')
 })

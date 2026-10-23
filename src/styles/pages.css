@@ -97,7 +97,10 @@
     --gallery-cover-height: 100vh;
     grid-column: 1 / -1;
     /* Extend the photo behind translucent mobile browser controls, as on home. */
-    height: calc(var(--gallery-cover-height) + var(--safe-bottom));
+    height: max(
+      calc(var(--gallery-cover-height) + var(--safe-bottom)),
+      calc(var(--mobile-screen-height, 0px) - var(--header-height) + 1px)
+    );
     aspect-ratio: auto;
   }
 

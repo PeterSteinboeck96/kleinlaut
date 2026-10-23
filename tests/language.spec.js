@@ -59,7 +59,8 @@ test.describe('English page content', () => {
           await expect(page.getByRole('link', { name: 'Give us a call' })).toHaveAttribute('href', 'tel:+4366499224120')
           await expect(page.getByRole('link', { name: 'send us an email' })).toHaveAttribute('href', 'mailto:hallo@kleinlaut.wien')
           await expect(page.locator('.home-hero-background img')).toHaveAttribute('alt', 'Cocktail in a softly lit bar')
-          const map = page.locator(`.home-map-${viewport.width < 640 ? 'mobile' : 'desktop'} iframe`)
+          const map = page.locator('.home-map iframe')
+          await expect(map).toHaveCount(1)
           await expect(map).toHaveAttribute('src', /[?&]hl=en(?:&|$)/)
           await expect(map).toHaveAttribute('title', 'Kleinlaut location on Google Maps')
           if (viewport.width < 1024) {

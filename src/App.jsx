@@ -11,7 +11,7 @@ export default function App() {
   }, [location])
 
   return (
-    <main className="text-white">
+    <main>
       <MenuTransition>
         <SiteRoutes />
       </MenuTransition>

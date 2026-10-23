@@ -64,7 +64,7 @@ export default function DrinksPage() {
         </div>
       </div>
       <div className="home-map">
-        {language === 'de' ? <a
+        {language === 'de' && <a
           className="home-map-mobile"
           href={`https://www.google.com/maps?q=kleinlaut&hl=${language}`}
           target="_blank"
@@ -78,7 +78,8 @@ export default function DrinksPage() {
             loading="lazy"
             decoding="async"
           />
-        </a> : <div className="home-map-mobile home-map-mobile--live">
+        </a>}
+        <div className={`home-map-embed ${language === 'de' ? 'home-map-desktop' : 'home-map-live'}`}>
           <iframe
             src={mapSrc}
             className="h-full w-full border-0 filter grayscale invert hue-rotate-180 contrast-90"
@@ -87,16 +88,6 @@ export default function DrinksPage() {
             allowFullScreen
             title={copy.mapTitle}
           />
-        </div>}
-        <div className="home-map-desktop">
-          <iframe
-            src={mapSrc}
-            className="h-full w-full border-0 filter grayscale invert hue-rotate-180 contrast-90"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
-            title={copy.mapTitle}
-          ></iframe>
         </div>
       </div>
     </section>

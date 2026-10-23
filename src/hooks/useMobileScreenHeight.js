@@ -18,8 +18,8 @@ export default function useMobileScreenHeight() {
         // Older mobile browsers can keep portrait screen dimensions on rotation.
         else if (screenWidth < screenHeight && width > window.innerHeight && Math.abs(width - screenHeight) <= 1) height = screenWidth
       }
-      if (Number.isFinite(height) && height > 0) element.style.setProperty('--home-screen-height', `${height}px`)
-      else element.style.removeProperty('--home-screen-height')
+      if (Number.isFinite(height) && height > 0) element.style.setProperty('--mobile-screen-height', `${height}px`)
+      else element.style.removeProperty('--mobile-screen-height')
     }
 
     updateHeight()

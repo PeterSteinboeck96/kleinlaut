@@ -123,7 +123,7 @@ test('all routes support direct loads and reloads without runtime errors', async
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text())
   })
-  for (const path of [...routes, '/drinks']) {
+  for (const path of [...routes, '/drinks', '/unknown-page']) {
     await page.goto(path)
     await expect(page.locator('header')).toBeVisible()
     await page.reload()
@@ -133,7 +133,7 @@ test('all routes support direct loads and reloads without runtime errors', async
       await expect.poll(() => page.getByAltText('Raumplan').evaluate((img) => img.naturalWidth)).toBeGreaterThan(0)
     }
     if (path === '/impressum') await expect(page.getByText('JP Frameworks GmbH')).toBeVisible()
-    if (path === '/drinks') await expect(page).toHaveURL('/')
+    if (path === '/drinks' || path === '/unknown-page') await expect(page).toHaveURL('/')
   }
   expect(errors).toEqual([])
 })
@@ -278,7 +278,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
   })
 }
 
-for (const width of [320, 390]) {
+for (const width of [320, 390, 1024, 1440]) {
   test(`enlarged text stays readable and menu navigation remains reachable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -288,7 +288,12 @@ for (const width of [320, 390]) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px' })
       await page.evaluate(() => document.fonts.ready)
       await expectNoHorizontalOverflow(page)
-      if (path === '/') await expectReachable(page.getByRole('link', { name: 'E-Mail', exact: true }), page)
+      if (path === '/') {
+        await expectReachable(page.getByRole('link', { name: 'E-Mail', exact: true }), page)
+        const hero = await page.locator('.home-hero').boundingBox()
+        const contact = await page.locator('.home-contact').boundingBox()
+        expect(contact.y + contact.height).toBeLessThanOrEqual(hero.y + hero.height + 1)
+      }
       if (path === '/menu') {
         for (const name of ['DRINKS', 'FOTOS', 'RAUMPLAN', 'IMPRESSUM']) {
           const link = page.locator('.menu-links').getByRole('link', { name, exact: true })
@@ -358,7 +363,8 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await page.locator('.menu-links').getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
     await expect(page.locator('.imprint-details > p')).toHaveCount(7)
     const lines = await page.locator('.imprint-details > p').evaluateAll(elements => elements.map(el => el.getBoundingClientRect().toJSON()))
-    expect(lines[1].y - lines[0].bottom).toBeGreaterThanOrEqual(16)
+    // Firefox can report a 16px margin as 15.99998px after fractional line boxes.
+    expect(lines[1].y - lines[0].bottom).toBeGreaterThanOrEqual(16 - 0.01)
     for (let i = 2; i < lines.length; i++) expect(Math.abs(lines[i].y - lines[i - 1].bottom)).toBeLessThanOrEqual(1)
   })
 }
@@ -435,6 +441,24 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
     await expectNoHorizontalOverflow(page)
   })
 }
+
+test('mobile menu keeps the first destination during rapid taps and can reopen after closing', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  const dialog = page.getByRole('dialog', { name: 'Menü', exact: true })
+  await page.getByRole('button', { name: 'Menü öffnen' }).click()
+  await expect(dialog.getByRole('link', { name: 'FOTOS', exact: true })).toHaveCSS('opacity', '1')
+  // Dispatch immediately: regular click() waits for motion to stop and misses
+  // the real interval where a second tap can replace the first destination.
+  await dialog.getByRole('link', { name: 'FOTOS', exact: true }).dispatchEvent('click')
+  await dialog.getByRole('link', { name: 'IMPRESSUM', exact: true }).dispatchEvent('click')
+  await expect(page).toHaveURL('/fotos')
+  await expect(dialog).not.toBeVisible()
+  await page.getByRole('button', { name: 'Menü öffnen' }).click()
+  await dialog.getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
+  await expect(page).toHaveURL('/impressum')
+  expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden')
+})
 
 test('mobile menu traps focus, closes with Escape, restores scrolling and closes on desktop resize', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })

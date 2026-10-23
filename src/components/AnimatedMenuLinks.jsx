@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion, useIsPresent, useReducedMotion } from 'motion/react'
 import drinksPdf from '@/assets/pdfs/kleinlaut.pdf'
 import { copy } from '../i18n.js'
 
@@ -14,6 +14,7 @@ const MotionLink = motion.create(Link)
 
 export default function AnimatedMenuLinks({ className = 'menu-links font-display', label = copy.pageNavigation, onSelect }) {
   const reduceMotion = useReducedMotion()
+  const isPresent = useIsPresent()
 
   return (
     <motion.nav className={className} aria-label={label} initial="hidden" animate="visible" exit="exit" variants={{
@@ -26,6 +27,8 @@ export default function AnimatedMenuLinks({ className = 'menu-links font-display
         const destination = item.to ? { to: item.to } : { href: item.href, target: '_blank', rel: 'noreferrer' }
         return (
           <Component key={item.label} {...destination} className="nav13-menu-link" onClick={event => {
+            // Exiting links stay mounted briefly; keep the first navigation choice.
+            if (!isPresent) { event.preventDefault(); return }
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
             onSelect?.(event, item)
           }} variants={{

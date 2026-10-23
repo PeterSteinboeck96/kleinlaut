@@ -14,6 +14,7 @@ export default function SiteRoutes() {
       <Route path="/fotos" element={<FotosPage />} />
       <Route path="/raumplan" element={<RaumplanPage />} />
       <Route path="/impressum" element={<ImpressumPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

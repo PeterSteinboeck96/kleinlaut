@@ -24,14 +24,18 @@ The production build is written to `dist/`. The existing Vercel rewrite serves
 ## Browser tests
 
 ```sh
-npx playwright install chromium webkit
+npx playwright install chromium firefox webkit
 npm test
 ```
 
-Tests build the production site and run in Chromium and touch-enabled WebKit.
+Tests build the production site and run in desktop Chromium, Firefox and WebKit,
+plus iPhone WebKit and Android Chromium profiles.
 They cover navigation, direct routes, the `/drinks` redirect, gallery ordering,
 scrolling, assets, contact links, reduced motion, and viewport resizing. The
-responsive matrix spans 320–1920px widths and short landscape screens.
+responsive matrix spans 320–1920px widths, short landscape screens, enlarged
+text, fast repeated menu selections, and unknown-route recovery. Mobile screen
+tests also model a physical display extending beyond the browser viewport,
+rotation, split views and restored pages.
 Third-party requests are stubbed so tests do not depend on Google Maps, Google
 Fonts, or the reservation service being available. Native Instagram/TikTok
 webviews still need device checks; browser emulation cannot reproduce every
@@ -44,6 +48,9 @@ app's toolbar and navigation behavior.
   with a `100vh` fallback for older browsers.
 - `.site-page` reserves the fixed header; `.page-panel` centers secondary-page
   content while leaving space for the floating reservation button.
+- `useMobileScreenHeight` extends home/gallery cover images behind translucent
+  browser controls only in full-width touch views. Home text uses the stable
+  small viewport independently, so collapsing toolbars do not move the text.
 - `src/styles/home.css` and `src/styles/pages.css` contain page-specific layouts.
   Use minimum heights and natural scrolling so short screens and larger text
   do not clip content.
@@ -66,6 +73,7 @@ npx claude-code-templates@latest --skill development/senior-frontend,development
 - `src/components/TopBar.jsx` provides the shared menu/back navigation.
 - `src/pages/` contains the home, menu, photos, floor plan, and imprint pages.
 - `index.html` retains metadata, favicons, fonts, and the reservation widget.
+- `public/assets/opengraph.webp` is the stable social-preview URL.
 
 ## Local assets setup
 
