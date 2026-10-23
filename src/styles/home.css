@@ -87,6 +87,10 @@
   text-wrap: pretty;
 }
 
+.home-contact[data-obscured] {
+  visibility: hidden;
+}
+
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
   .home-hero-content {
     min-height: calc(var(--viewport-height) - var(--header-height));

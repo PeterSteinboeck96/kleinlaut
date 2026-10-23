@@ -321,3 +321,29 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     for (let i = 2; i < lines.length; i++) expect(Math.abs(lines[i].y - lines[i - 1].bottom)).toBeLessThanOrEqual(1)
   })
 }
+
+for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+  test(`contact disappears as a whole before the header clips it at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+    // Model the iPhone browser's safe areas, including its taller fixed header.
+    await page.addStyleTag({ content: ':root { --safe-top: 47px; --safe-bottom: 34px; }' })
+    const contact = page.locator('.home-contact')
+    const initialHeight = await page.evaluate(() => document.documentElement.scrollHeight)
+    const contactTop = (await contact.boundingBox()).y
+    const headerBottom = await page.locator('header').evaluate(el => el.getBoundingClientRect().bottom)
+    await page.evaluate(y => window.scrollTo(0, y), contactTop - headerBottom - 24)
+    await expect(contact).toBeVisible()
+    await page.evaluate(() => window.scrollBy(0, 12))
+    await expect(contact).toBeHidden()
+    // No collapsed space, scroll jump, or invisible focusable contact links.
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(initialHeight)
+    await expect(page.getByRole('link', { name: 'Mail', exact: true })).toHaveCount(0)
+    await page.evaluate(() => window.scrollBy(0, 150))
+    await expect(contact).toBeHidden()
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await expect(contact).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Mail', exact: true })).toBeVisible()
+  })
+}
