@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import TopBar from '../components/TopBar.jsx'
+import GalleryIntro from '../components/GalleryIntro.jsx'
 import useMobileScreenHeight from '../hooks/useMobileScreenHeight.js'
 import { copy } from '../i18n.js'
 import '../styles/pages.css'
@@ -57,6 +58,7 @@ export default function FotosPage() {
           ))}
         </div>
       </div>
+      <GalleryIntro galleryRef={galleryRef} mobile={mobile} />
     </section>
   )
 }

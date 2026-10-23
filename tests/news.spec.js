@@ -4,12 +4,42 @@ test.use({ locale: 'de-AT' })
 
 const news = 'Neue Herbstkarte • Weihnachtsmarkt Eröffnung Freitag 13.11.2026 • Wir suchen Verstärkung • Bewerbungen per Mail'
 
+async function sampleTrack(track, duration) {
+  return track.evaluate((el, duration) => new Promise(resolve => {
+    const frames = []
+    let start
+    const capture = time => {
+      start ??= time
+      frames.push({ time, x: el.getBoundingClientRect().x, groups: [...el.children].map(group => group.getBoundingClientRect().toJSON()) })
+      if (time - start >= duration) resolve(frames)
+      else requestAnimationFrame(capture)
+    }
+    requestAnimationFrame(capture)
+  }), duration)
+}
+
+function travel(frames) {
+  let total = 0
+  for (let i = 1; i < frames.length; i++) {
+    const width = frames[i].groups[0].width
+    let delta = frames[i].x - frames[i - 1].x
+    if (delta > width / 2) delta -= width
+    if (delta < -width / 2) delta += width
+    total += delta
+  }
+  return total
+}
+
+async function nextFrame(page) {
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route('https://**/*', route => route.fulfill({ body: '', contentType: 'text/plain' }))
 })
 
 for (const width of [320, 390, 1024, 1920, 3840]) {
-  test(`news fills its own fixed row and loops right without gaps at ${width}px`, async ({ page }) => {
+  test(`news fills its own fixed row and loops left without gaps at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await page.goto('/')
@@ -35,28 +65,17 @@ for (const width of [320, 390, 1024, 1920, 3840]) {
     const track = bar.locator('.news-track')
     await expect.poll(() => track.locator('.news-group').first().evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThanOrEqual(width)
 
-    // Seek through a whole cycle to check direction, constant speed and the seam.
-    const frames = await track.evaluate(el => {
-      const animation = el.getAnimations()[0]
-      animation.pause()
-      const duration = animation.effect.getTiming().duration
-      return [0, 0.25, 0.5, 0.99999, 1].map(progress => {
-        animation.currentTime = duration * progress
-        const groups = [...el.children].map(group => group.getBoundingClientRect().toJSON())
-        return { x: el.getBoundingClientRect().x, groups, duration }
-      })
-    })
-    expect(frames[1].x).toBeGreaterThan(frames[0].x)
-    expect(frames[2].x).toBeGreaterThan(frames[1].x)
-    expect((frames[2].x - frames[0].x) / (frames[2].duration / 2000)).toBeCloseTo(45, 0)
+    await expect(bar.locator('.news-message').first()).toHaveCSS('text-transform', 'uppercase')
+    await expect(bar.locator('.news-message').first()).toHaveCSS('padding-right', '0px')
+    expect(await bar.locator('.news-message').first().textContent()).toBe(`${news} • `)
+    const frames = await sampleTrack(track, 220)
+    expect(frames.length).toBeGreaterThan(3)
+    expect(travel(frames)).toBeLessThan(-4)
     for (const frame of frames) {
       expect(frame.groups[0].x).toBeLessThanOrEqual(1)
       expect(frame.groups[1].right).toBeGreaterThanOrEqual(width - 1)
       expect(frame.groups[0].right).toBeCloseTo(frame.groups[1].x, 0)
     }
-    // At the exact boundary WebKit may report either the last or first frame.
-    // Both must place an identical text group at the same visible position.
-    expect(Math.min(...frames[4].groups.map(group => Math.abs(group.x - frames[3].groups[0].x)))).toBeLessThan(0.5)
     await page.evaluate(() => scrollTo(0, 400))
     expect(await bar.boundingBox()).toEqual(barBox)
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
@@ -70,11 +89,13 @@ test('news stays above the mobile menu and remains pausable by touch and keyboar
   const bar = page.getByRole('region', { name: 'Neuigkeiten' })
   const track = bar.locator('.news-track')
   await bar.getByRole('button', { name: 'Lauftext pausieren' }).click()
-  await expect(track).toHaveCSS('animation-play-state', 'paused')
+  await expect(bar.locator('.news-toggle')).toHaveAttribute('data-paused', 'true')
+  expect(Math.abs(travel(await sampleTrack(track, 120)))).toBeLessThan(0.5)
   await page.getByRole('button', { name: 'Menü öffnen' }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
-  await expect(track).toHaveCSS('animation-play-state', 'paused')
+  await expect(bar.locator('.news-toggle')).toHaveAttribute('data-paused', 'true')
+  expect(Math.abs(travel(await sampleTrack(track, 120)))).toBeLessThan(0.5)
   expect(await bar.evaluate(el => {
     const box = el.getBoundingClientRect()
     return el.contains(document.elementFromPoint(box.width / 2, box.y + box.height / 2))
@@ -85,7 +106,8 @@ test('news stays above the mobile menu and remains pausable by touch and keyboar
   await page.keyboard.press('Shift+Tab')
   await expect(bar.getByRole('button', { name: 'Lauftext fortsetzen' })).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(track).toHaveCSS('animation-play-state', 'running')
+  await expect(bar.locator('.news-toggle')).toHaveAttribute('data-paused', 'false')
+  expect(travel(await sampleTrack(track, 180))).toBeLessThan(-3)
   await page.keyboard.press('Escape')
   await expect(dialog).not.toBeVisible()
   await expect(bar).toBeInViewport()
@@ -121,4 +143,92 @@ test('English news follows the device language on every page', async ({ page }) 
     await expect(bar).toBeVisible()
     await expect(bar.locator('#news-text')).toHaveText('New autumn menu • Christmas market opening Friday 13 November 2026 • We’re hiring • Apply by email')
   }
+})
+
+
+test('mouse dragging follows the pointer in both directions and coasts without toggling pause', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto('/')
+  await page.evaluate(() => document.fonts.ready)
+  const button = page.locator('.news-toggle')
+  const track = page.locator('.news-track')
+  await button.click()
+  await expect(button).toHaveAttribute('data-paused', 'true')
+  const box = await button.boundingBox()
+  for (const direction of [1, -1]) {
+    const startX = direction === 1 ? 50 : 250
+    const y = box.y + box.height / 2
+    await page.mouse.move(startX, y)
+    await page.mouse.down()
+    const positions = await sampleTrack(track, 40)
+    for (let step = 1; step <= 8; step++) {
+      await page.mouse.move(startX + direction * step * 20, y)
+      await nextFrame(page)
+      positions.push(...await sampleTrack(track, 0))
+    }
+    expect(travel(positions)).toBeCloseTo(direction * 160, -1)
+    await expect(button).toHaveCSS('cursor', 'grabbing')
+    // Release while moving, after assertions; holding still intentionally has no momentum.
+    await page.mouse.move(startX + direction * 180, y)
+    await page.mouse.up()
+    await expect(button).toHaveAttribute('data-paused', 'true')
+    const coast = await sampleTrack(track, 500)
+    expect(direction * travel(coast)).toBeGreaterThan(15)
+    const midpoint = Math.floor(coast.length / 2)
+    expect(Math.abs(travel(coast.slice(midpoint)))).toBeLessThan(Math.abs(travel(coast.slice(0, midpoint))))
+  }
+})
+
+test('keyboard movement crosses loop boundaries with exactly one space around each bullet', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto('/')
+  const button = page.locator('.news-toggle')
+  await button.click()
+  await button.focus()
+  const track = page.locator('.news-track')
+  const width = await track.locator('.news-group').first().evaluate(el => el.getBoundingClientRect().width)
+  const frames = []
+  for (let step = 0; step < Math.ceil(width / 120) + 2; step++) {
+    await page.keyboard.press('ArrowRight')
+    await nextFrame(page)
+    frames.push(...await sampleTrack(track, 0))
+  }
+  expect(travel(frames)).toBeLessThan(-width)
+  for (const frame of frames) {
+    expect(frame.groups[0].x).toBeLessThanOrEqual(1)
+    expect(frame.groups[1].right).toBeGreaterThanOrEqual(page.viewportSize().width - 1)
+  }
+  const repeated = await track.locator('.news-group').first().textContent()
+  expect(repeated).not.toMatch(/ {2,}/)
+  expect(repeated).toMatch(/ • $/)
+})
+
+test('touch swipe has momentum while vertical gestures still scroll the page', async ({ page, context }, testInfo) => {
+  test.skip(testInfo.project.name !== 'android-chrome', 'Real touch gestures use Chromium CDP; other engines cover the same pointer handlers with mouse input.')
+  await page.goto('/')
+  const client = await context.newCDPSession(page)
+  const button = page.locator('.news-toggle')
+  const track = page.locator('.news-track')
+  await button.tap()
+  await expect(button).toHaveAttribute('data-paused', 'true')
+  const box = await button.boundingBox()
+  const y = box.y + box.height / 2
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 60, y }] })
+  for (let step = 1; step <= 8; step++) {
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 60 + step * 20, y }] })
+    await nextFrame(page)
+  }
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  expect(travel(await sampleTrack(track, 200))).toBeGreaterThan(15)
+  await expect(button).toHaveAttribute('data-paused', 'true')
+  await expect(button).toHaveCSS('touch-action', 'pan-y pinch-zoom')
+  // Swipe up beginning on the bar: the browser, not the ticker, owns vertical panning.
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 180, y }] })
+  for (let step = 1; step <= 5; step++) {
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 180, y: y - step * 12 }] })
+    await nextFrame(page)
+  }
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0)
+  await expect(button).toHaveAttribute('data-dragging', 'false')
 })

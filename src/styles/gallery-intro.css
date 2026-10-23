@@ -1,0 +1,29 @@
+.gallery-intro-glass {
+  position: fixed;
+  z-index: 35;
+  left: 50%;
+  bottom: calc(var(--widget-clearance) + var(--safe-bottom) + var(--space-8));
+  width: 3.5rem;
+  height: 4.5rem;
+  pointer-events: none;
+  border: 1px solid rgb(255 255 255 / 38%);
+  border-radius: 48%;
+  background: linear-gradient(135deg, rgb(255 255 255 / 26%), rgb(255 255 255 / 3%) 45%, rgb(255 255 255 / 12%));
+  box-shadow: inset 1px 2px 3px rgb(255 255 255 / 40%), inset -1px -2px 4px rgb(255 255 255 / 18%);
+  -webkit-backdrop-filter: blur(3px) saturate(1.35);
+  backdrop-filter: blur(3px) saturate(1.35);
+  opacity: 0;
+  animation: gallery-glass-swipe 1.15s ease-in-out both;
+}
+
+@keyframes gallery-glass-swipe {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.85); }
+  18% { opacity: 0.85; transform: translate(-50%, 0) scale(1); }
+  48% { opacity: 0.8; transform: translate(-50%, -50px) scale(0.9, 1.12); border-radius: 44% 44% 52% 52%; }
+  78% { opacity: 0.3; transform: translate(-50%, -64px) scale(1.04, 0.95); }
+  100% { opacity: 0; transform: translate(-50%, -68px) scale(1); }
+}
+
+@media (min-width: 1024px), (prefers-reduced-motion: reduce) {
+  .gallery-intro-glass { display: none; }
+}
