@@ -8,7 +8,7 @@ export default function ImpressumPage() {
         className="flex h-[calc(100dvh-48px)] items-center justify-center px-6 text-center"
       >
         <div className="space-y-1 text-sm text-[#808080]">
-          <p className="font-body text-base font-extrabold text-accent">JP Frameworks GmbH</p>
+          <p className="font-body text-base font-medium text-accent">JP Frameworks GmbH</p>
           <p>Löwengasse 28/30, 1030 Wien</p>
           <p>
             <a className="underline underline-offset-2" href="mailto:hallo@kleinlaut.wien">

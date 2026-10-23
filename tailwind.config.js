@@ -11,7 +11,7 @@ export default {
       },
       fontFamily: {
         display: ['"Proxima Nova"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
-        body: ['"EB Garamond"', '"Times New Roman"', 'serif'],
+        body: ['"Alegreya Sans"', 'Arial', 'sans-serif'],
       },
       boxShadow: {
         'soft-glow': '0 12px 40px rgba(0, 0, 0, 0.45)',

@@ -23,7 +23,7 @@ export default function FotosPage() {
     <section className="min-h-screen bg-black pt-12">
       <TopBar />
       <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center sm:hidden">
-        <span className="text-[0.9rem] font-extrabold italic text-accent text-center">
+        <span className="text-[0.9rem] font-medium italic text-accent text-center">
           Die bunte <br />Bar im Herzen<br />Wiens &lt;3
         </span>
       </div>
