@@ -1,4 +1,5 @@
 import TopBar from '../components/TopBar.jsx'
+import { copy } from '../i18n.js'
 import '../styles/pages.css'
 
 export default function ImpressumPage() {
@@ -19,7 +20,7 @@ export default function ImpressumPage() {
           </p>
           <p>ATU80958368</p>
           <p>FN 617457 a</p>
-          <p>Gastronomie Betrieb</p>
+          <p>{copy.business}</p>
         </div>
       </div>
     </section>

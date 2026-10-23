@@ -1,5 +1,6 @@
 import TopBar from '../components/TopBar.jsx'
 import { useMenuTransition } from '../components/MenuTransition.jsx'
+import { copy, language } from '../i18n.js'
 import heroImage from '@/assets/images/hero.webp'
 import heroDesktopImage from '@/assets/images/hero_desktop.webp'
 import logoImage from '@/assets/images/logo.png'
@@ -7,7 +8,7 @@ import mapMobileImage from '@/assets/images/map_mobile.webp'
 import '../styles/home.css'
 
 const mapSrc =
-  'https://www.google.com/maps?q=kleinlaut&z=18&output=embed'
+  `https://www.google.com/maps?q=kleinlaut&z=18&output=embed&hl=${language}`
 
 export default function DrinksPage() {
   const { isRevealing } = useMenuTransition()
@@ -21,7 +22,7 @@ export default function DrinksPage() {
           <source srcSet={heroDesktopImage} media="(min-width: 1024px), (orientation: landscape)" />
           <img
             src={heroImage}
-            alt="Cocktail in a dimly lit bar"
+            alt={copy.heroAlt}
             width="1232"
             height="2667"
             fetchPriority="high"
@@ -39,42 +40,52 @@ export default function DrinksPage() {
             <p
               className={`home-hours font-body font-bold text-accent ${entrance}`}
             >
-              Dienstag bis Samstag<br />18:00 - 02:00
+              {copy.days}<br />{copy.hours}
             </p>
           </div>
           <p className="home-contact text-accent">
-            Bei Fragen melde dich gerne per{' '}
-            <a className="underline underline-offset-2" href="tel:+4366499224120">Anruf</a>,
-            slide in unsere{' '}
+            {copy.contact.beforeCall}
+            <a className="underline underline-offset-2" href="tel:+4366499224120">{copy.contact.call}</a>
+            {copy.contact.beforeInstagram}
             <a
               className="underline underline-offset-2"
               href="https://www.instagram.com/kleinlaut1070/"
               target="_blank"
               rel="noreferrer"
             >
-              DMs
+              {copy.contact.instagram}
             </a>
-            {' '}oder schreibe uns eine{' '}
-            <a className="underline underline-offset-2" href="mailto:hallo@kleinlaut.wien">Mail</a> :)
+            {copy.contact.beforeEmail}
+            <a className="underline underline-offset-2" href="mailto:hallo@kleinlaut.wien">{copy.contact.email}</a>
+            {copy.contact.afterEmail}
           </p>
         </div>
       </div>
       <div className="home-map">
-        <a
+        {language === 'de' ? <a
           className="home-map-mobile"
-          href="https://www.google.com/maps?q=kleinlaut"
+          href={`https://www.google.com/maps?q=kleinlaut&hl=${language}`}
           target="_blank"
           rel="noreferrer"
         >
           <img
             src={mapMobileImage}
-            alt="Kleinlaut on Google Maps"
+            alt={copy.mapAlt}
             width="2965"
             height="3950"
             loading="lazy"
             decoding="async"
           />
-        </a>
+        </a> : <div className="home-map-mobile home-map-mobile--live">
+          <iframe
+            src={mapSrc}
+            className="h-full w-full border-0 filter grayscale invert hue-rotate-180 contrast-90"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            allowFullScreen
+            title={copy.mapTitle}
+          />
+        </div>}
         <div className="home-map-desktop">
           <iframe
             src={mapSrc}
@@ -82,7 +93,7 @@ export default function DrinksPage() {
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             allowFullScreen
-            title="Kleinlaut location on Google Maps"
+            title={copy.mapTitle}
           ></iframe>
         </div>
       </div>

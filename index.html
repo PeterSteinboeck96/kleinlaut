@@ -2,17 +2,22 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Only the first preference decides: German, otherwise English.
+      // Run before rendering and before Molzait reads its configuration.
+      document.documentElement.lang = /^de(?:-|$)/i.test(navigator.languages?.[0] || navigator.language || '') ? 'de' : 'en'
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#ffff00" />
     <title>Kleinlaut</title>
     <meta
       name="description"
-      content="Kleinlaut | Die bunte Bar im Herzen Wien <3"
+      content="Kleinlaut | Die bunte Bar im Herzen Wiens <3"
     />
     <meta property="og:title" content="Kleinlaut" />
     <meta
       property="og:description"
-      content="Kleinlaut | Die bunte Bar im Herzen Wien <3"
+      content="Kleinlaut | Die bunte Bar im Herzen Wiens <3"
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.kleinlaut.wien" />
@@ -21,7 +26,7 @@
     <meta name="twitter:title" content="Kleinlaut" />
     <meta
       name="twitter:description"
-      content="Kleinlaut | Die bunte Bar im Herzen Wien <3"
+      content="Kleinlaut | Die bunte Bar im Herzen Wiens <3"
     />
     <meta name="twitter:image" content="https://kleinlaut.wien/assets/opengraph.webp" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -44,6 +49,9 @@
       type="text/javascript"
       defer
     ></script>
+    <script>
+      document.querySelector('script[molzait]').dataset.locale = document.documentElement.lang
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

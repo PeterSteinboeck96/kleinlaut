@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+test.use({ locale: 'de-AT' })
+
 const routes = ['/', '/menu', '/fotos', '/raumplan', '/impressum']
 const viewports = [
   { width: 320, height: 568 },
@@ -67,13 +69,13 @@ test('home preserves content, contact links and responsive assets', async ({ pag
   await page.goto('/')
   await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible()
   await expect(page.getByText('Dienstag bis Samstag')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Anruf' })).toHaveAttribute('href', 'tel:+4366499224120')
-  await expect(page.getByRole('link', { name: 'Mail', exact: true })).toHaveAttribute('href', 'mailto:hallo@kleinlaut.wien')
-  await expect(page.getByRole('link', { name: 'DMs' })).toHaveAttribute('href', 'https://www.instagram.com/kleinlaut1070/')
-  const hero = page.getByAltText('Cocktail in a dimly lit bar')
+  await expect(page.getByRole('link', { name: 'ruf uns gerne an' })).toHaveAttribute('href', 'tel:+4366499224120')
+  await expect(page.getByRole('link', { name: 'E-Mail', exact: true })).toHaveAttribute('href', 'mailto:hallo@kleinlaut.wien')
+  await expect(page.getByRole('link', { name: 'Instagram' })).toHaveAttribute('href', 'https://www.instagram.com/kleinlaut1070/')
+  const hero = page.getByAltText('Cocktail in einer stimmungsvoll beleuchteten Bar')
   await expect.poll(() => hero.evaluate((img) => img.naturalWidth)).toBeGreaterThan(0)
   expect(await hero.evaluate((img) => img.currentSrc)).toContain(page.viewportSize().width < 1024 ? '/hero-' : '/hero_desktop-')
-  await expect(page.getByAltText('Kleinlaut on Google Maps')).toBeVisible({ visible: page.viewportSize().width < 640 })
+  await expect(page.getByAltText('Kleinlaut auf Google Maps')).toBeVisible({ visible: page.viewportSize().width < 640 })
   await expect(page.locator('iframe')).toBeVisible({ visible: page.viewportSize().width >= 640 })
   await expect(page.locator('script[molzait]')).toHaveAttribute('data-restaurant', 'kleinlaut-f7687aa9f1')
 })
@@ -99,12 +101,13 @@ test('menu links, PDF, history and return navigation work', async ({ page, reque
   await expect(page).toHaveURL('/')
 })
 
-test('gallery retains all photos, numeric order and scroll navigation', async ({ page }) => {
+test('gallery retains all photos and moves photo three last only on mobile', async ({ page }) => {
   await page.goto('/fotos')
-  const photos = page.getByRole('img', { name: /^Gallery image/ })
+  const photos = page.getByRole('img', { name: /^Foto aus der Kleinlaut-Galerie/ })
   await expect(photos).toHaveCount(60)
   const sources = await photos.evaluateAll((images) => images.map((img) => Number(img.src.match(/\/(\d+)-/)[1])))
-  expect(sources).toEqual(Array.from({ length: 60 }, (_, i) => i + 1))
+  const originalOrder = Array.from({ length: 60 }, (_, i) => i + 1)
+  expect(sources).toEqual(page.viewportSize().width < 1024 ? [...originalOrder.filter(number => number !== 3), 3] : originalOrder)
   await expect.poll(() => photos.first().evaluate((img) => img.naturalWidth)).toBeGreaterThan(0)
   await page.evaluate(() => window.scrollTo(0, 500))
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
@@ -151,7 +154,7 @@ for (const viewport of viewports) {
         const logo = page.getByAltText('Kleinlaut', { exact: true })
         await expectCentered(logo, page)
         await expectCentered(page.getByText('Dienstag bis Samstag'), page)
-        await expectReachable(page.getByRole('link', { name: 'Mail', exact: true }), page)
+        await expectReachable(page.getByRole('link', { name: 'E-Mail', exact: true }), page)
       }
       if (route === '/menu') {
         for (const name of ['DRINKS', 'FOTOS', 'RAUMPLAN', 'IMPRESSUM']) {
@@ -177,10 +180,10 @@ for (const viewport of viewports) {
       }
       if (route === '/impressum') {
         await expectCentered(page.getByText('JP Frameworks GmbH'), page)
-        await expectReachable(page.getByText('Gastronomie Betrieb'), page)
+        await expectReachable(page.getByText('Gastronomiebetrieb'), page)
       }
       if (route === '/fotos') {
-        const photos = page.getByRole('img', { name: /^Gallery image/ })
+        const photos = page.getByRole('img', { name: /^Foto aus der Kleinlaut-Galerie/ })
         const [first, second, third] = await Promise.all([photos.nth(0).boundingBox(), photos.nth(1).boundingBox(), photos.nth(2).boundingBox()])
         expect(first.x).toBe(0)
         expect(first.width).toBe(viewport.width)
@@ -202,13 +205,13 @@ test('resizing from portrait to short landscape and back keeps navigation usable
   await expectNoHorizontalOverflow(page)
   await page.goto('/menu')
   await page.locator('.menu-links').getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
-  await expectReachable(page.getByText('Gastronomie Betrieb'), page)
+  await expectReachable(page.getByText('Gastronomiebetrieb'), page)
   await page.setViewportSize({ width: 390, height: 600 })
   await expectCentered(page.getByText('JP Frameworks GmbH'), page)
-  await expectReachable(page.getByText('Gastronomie Betrieb'), page)
+  await expectReachable(page.getByText('Gastronomiebetrieb'), page)
   await page.goto('/menu')
   await page.goto('/')
-  await expectReachable(page.getByRole('link', { name: 'Mail', exact: true }), page)
+  await expectReachable(page.getByRole('link', { name: 'E-Mail', exact: true }), page)
   await expectNoHorizontalOverflow(page)
 })
 
@@ -247,7 +250,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
     const topBar = await page.locator('header').boundingBox()
     expect(topBar.height).toBe(44 + 52)
     if (viewport.height > 480) {
-      for (const name of ['Anruf', 'DMs', 'Mail']) {
+      for (const name of ['ruf uns gerne an', 'Instagram', 'E-Mail']) {
         const linkBox = await page.getByRole('link', { name, exact: true }).boundingBox()
         expect(buttonBox.y - (linkBox.y + linkBox.height)).toBeGreaterThanOrEqual(32)
       }
@@ -275,7 +278,7 @@ for (const width of [320, 390]) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px' })
       await page.evaluate(() => document.fonts.ready)
       await expectNoHorizontalOverflow(page)
-      if (path === '/') await expectReachable(page.getByRole('link', { name: 'Mail', exact: true }), page)
+      if (path === '/') await expectReachable(page.getByRole('link', { name: 'E-Mail', exact: true }), page)
       if (path === '/menu') {
         for (const name of ['DRINKS', 'FOTOS', 'RAUMPLAN', 'IMPRESSUM']) {
           const link = page.locator('.menu-links').getByRole('link', { name, exact: true })
@@ -285,7 +288,7 @@ for (const width of [320, 390]) {
         await page.locator('.menu-links').getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
         await expect(page).toHaveURL('/impressum')
       }
-      if (path === '/impressum') await expectReachable(page.getByText('Gastronomie Betrieb'), page)
+      if (path === '/impressum') await expectReachable(page.getByText('Gastronomiebetrieb'), page)
     }
   })
 }
@@ -308,14 +311,14 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
       }, viewport.height - toolbarHeight)
       const map = page.locator('.home-map')
       const mapBox = await map.boundingBox()
-      const imageBox = await page.getByAltText('Cocktail in a dimly lit bar').boundingBox()
+      const imageBox = await page.getByAltText('Cocktail in einer stimmungsvoll beleuchteten Bar').boundingBox()
       const headerBox = await page.locator('header').boundingBox()
       // Safari can display the next section underneath its floating toolbar,
       // beyond the height reported for the content viewport. Reserve the header
       // and bottom safe-area allowance in addition to the full background height.
       expect(mapBox.y).toBeGreaterThanOrEqual(viewport.height + headerBox.height + 34 - 1)
       expect(imageBox.height).toBeGreaterThanOrEqual(viewport.height + 34 - 1)
-      const contactBottom = await page.getByRole('link', { name: 'Mail', exact: true }).evaluate(el => el.getBoundingClientRect().bottom)
+      const contactBottom = await page.getByRole('link', { name: 'E-Mail', exact: true }).evaluate(el => el.getBoundingClientRect().bottom)
       const reservationFrameTop = viewport.height - toolbarHeight - 34 - 70
       expect(reservationFrameTop - contactBottom).toBeGreaterThanOrEqual(32)
       await page.evaluate(() => window.scrollBy(0, 300))
@@ -383,7 +386,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
       return range.getBoundingClientRect().bottom
     })).toBeLessThanOrEqual(headerBottom)
     await page.evaluate(() => window.scrollTo(0, 0))
-    await expect(page.getByRole('link', { name: 'Mail', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'E-Mail', exact: true })).toBeVisible()
     expect(await contact.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(documentTop, 0)
   })
 }
@@ -399,7 +402,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
         await expect(page.getByRole('dialog', { name: 'Menü', exact: true })).toBeVisible()
         return page.getByRole('navigation', { name: 'Mobile Seitennavigation' })
       }
-      await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'MENU', exact: true }).click()
+      await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'MENÜ', exact: true }).click()
       return page.getByRole('navigation', { name: 'Seitennavigation', exact: true })
     }
     let nav = await navigation()
@@ -416,8 +419,8 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
       await expect(page).toHaveURL(path)
     }
     nav = await navigation()
-    if (mobile) await page.getByRole('button', { name: 'Zur Startseite' }).click()
-    else await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'STARTSEITE', exact: true }).click()
+    if (mobile) await page.getByRole('button', { name: 'Start' }).click()
+    else await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'START', exact: true }).click()
     await expect(page).toHaveURL('/')
     await expectNoHorizontalOverflow(page)
   })
@@ -430,7 +433,7 @@ test('mobile menu traps focus, closes with Escape, restores scrolling and closes
   const opener = page.getByRole('button', { name: 'Menü öffnen' })
   const dialog = page.getByRole('dialog', { name: 'Menü', exact: true })
   await opener.click()
-  await expect(dialog.getByRole('button', { name: 'Zur Startseite' })).toBeFocused()
+  await expect(dialog.getByRole('button', { name: 'Start' })).toBeFocused()
   for (let i = 0; i < 12; i++) {
     await page.keyboard.press('Tab')
     expect(await dialog.evaluate(el => el.contains(document.activeElement))).toBeTruthy()
@@ -447,7 +450,7 @@ test('mobile menu traps focus, closes with Escape, restores scrolling and closes
   await opener.click()
   await dialog.getByRole('link', { name: 'IMPRESSUM', exact: true }).scrollIntoViewIfNeeded()
   await expect(dialog.getByRole('link', { name: 'IMPRESSUM', exact: true })).toBeInViewport()
-  await dialog.getByRole('button', { name: 'Zur Startseite' }).click()
+  await dialog.getByRole('button', { name: 'Start' }).click()
   await expect(dialog).not.toBeVisible()
 })
 
@@ -459,14 +462,14 @@ for (const width of [390, 1440]) {
     const nav = page.getByRole('navigation', { name: 'Hauptnavigation' })
     if (width < 1024) {
       const toggle = nav.getByRole('button', { name: 'Menü öffnen' })
-      await expect(toggle).toHaveText('MENU')
+      await expect(toggle).toHaveText('MENÜ')
       await expect(nav.locator('svg')).toHaveCount(0)
       const box = await toggle.boundingBox()
       expect(box.x).toBe(0)
       expect(box.width).toBe(width)
       await toggle.click({ position: { x: 2, y: box.height / 2 } })
-      const close = page.getByRole('button', { name: 'Zur Startseite' })
-      await expect(close).toHaveText('STARTSEITE')
+      const close = page.getByRole('button', { name: 'Start' })
+      await expect(close).toHaveText('START')
       await expect(close).toHaveCSS('outline-style', 'none')
       await expect(close).toHaveCSS('text-decoration-line', 'none')
       await expect(page.locator('.nav13-footer')).toHaveCount(0)
@@ -478,14 +481,14 @@ for (const width of [390, 1440]) {
       await close.click({ position: { x: width - 2, y: closeBox.height / 2 } })
       await expect(page.getByRole('dialog')).not.toBeVisible()
     } else {
-      const menu = nav.getByRole('link', { name: 'MENU', exact: true })
+      const menu = nav.getByRole('link', { name: 'MENÜ', exact: true })
       await expect(nav.getByRole('link')).toHaveCount(1)
       await expectCentered(menu, page)
       await expect(menu).toHaveCSS('font-weight', '800')
       await menu.click()
       await expect(page).toHaveURL('/menu')
       await expect(page.getByRole('navigation', { name: 'Seitennavigation', exact: true }).getByRole('link')).toHaveCount(4)
-      await expect(page.getByRole('link', { name: 'STARTSEITE', exact: true })).toBeVisible()
+      await expect(page.getByRole('link', { name: 'START', exact: true })).toBeVisible()
     }
   })
 }
@@ -503,7 +506,7 @@ for (const start of ['/fotos', '/raumplan', '/impressum']) {
     expect(await dialog.evaluate(el => getComputedStyle(el, '::backdrop').backgroundColor)).toBe('rgba(0, 0, 0, 0)')
     await expect(dialog.getByRole('link', { name: 'IMPRESSUM', exact: true })).toHaveCSS('opacity', '1')
     const firstLink = dialog.getByRole('link', { name: 'DRINKS', exact: true })
-    await dialog.getByRole('button', { name: 'Zur Startseite' }).click()
+    await dialog.getByRole('button', { name: 'Start' }).click()
     await expect.poll(() => firstLink.evaluate(el => Number(getComputedStyle(el).opacity))).toBeLessThan(0.99)
     await expect(panel).toHaveCSS('transform', 'none')
     await expect(panel).toHaveCSS('background-color', 'rgb(0, 0, 0)')
@@ -523,7 +526,7 @@ for (const width of [1024, 1440, 1920]) {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await page.goto('/')
     for (const destination of ['/fotos', '/']) {
-      await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'MENU', exact: true }).click()
+      await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'MENÜ', exact: true }).click()
       const nav = page.getByRole('navigation', { name: 'Seitennavigation', exact: true })
       const links = nav.getByRole('link')
       // Staggered entry: the first link becomes visible before the last one.
@@ -534,7 +537,7 @@ for (const width of [1024, 1440, 1920]) {
       await expectCentered(nav, page)
       await expect(nav).toHaveCSS('transform', 'none')
       await expect(page.locator('.menu-page')).toHaveCSS('background-color', 'rgb(0, 0, 0)')
-      if (destination === '/') await page.getByRole('link', { name: 'STARTSEITE', exact: true }).click()
+      if (destination === '/') await page.getByRole('link', { name: 'START', exact: true }).click()
       else await nav.getByRole('link', { name: 'FOTOS', exact: true }).click()
       // Navigation waits for the text to exit; the black page stays stationary.
       await expect.poll(() => links.first().evaluate(el => Number(getComputedStyle(el).opacity)), { intervals: [10, 20, 50] }).toBeLessThan(0.99)
@@ -575,7 +578,7 @@ for (const { width, start } of [
     if (start === '/') await expect(page.locator('.home-logo')).toHaveCSS('opacity', '1')
     for (let cycle = 0; cycle < 2; cycle++) {
       if (width < 1024) await page.getByRole('button', { name: 'Menü öffnen' }).click()
-      else await page.getByRole('link', { name: 'MENU', exact: true }).click()
+      else await page.getByRole('link', { name: 'MENÜ', exact: true }).click()
       await expect(page.locator('.menu-links a').last()).toHaveCSS('opacity', '1')
       // Record rendered frames instead of relying on polling a 150ms transition.
       await page.evaluate(() => {
@@ -609,8 +612,8 @@ for (const { width, start } of [
           },
         }
       })
-      if (width < 1024) await page.getByRole('button', { name: 'Zur Startseite' }).click()
-      else await page.getByRole('link', { name: 'STARTSEITE', exact: true }).click()
+      if (width < 1024) await page.getByRole('button', { name: 'Start' }).click()
+      else await page.getByRole('link', { name: 'START', exact: true }).click()
       await expect.poll(() => page.evaluate(() => window.menuTransitionProbe.frames.some(frame => frame.cover !== null))).toBe(true)
       await expect(page.locator('.menu-reveal')).toHaveCount(0)
       await expect(page).toHaveURL('/')
@@ -619,7 +622,9 @@ for (const { width, start } of [
       const { frames, entrances } = await page.evaluate(() => window.menuTransitionProbe.stop())
       const fade = frames.filter(frame => frame.cover !== null)
       expect(fade.some(frame => frame.cover > 0 && frame.cover < 1)).toBe(true)
-      expect(fade.every(frame => frame.links === 0 && frame.logo === 0 && frame.black === 'rgb(0, 0, 0)')).toBe(true)
+      // During a route change the home logo may not be mounted yet. Both an
+      // absent and a fully transparent logo keep the entrance behind the fade.
+      expect(fade.every(frame => frame.links === 0 && (frame.logo === null || frame.logo === 0) && frame.black === 'rgb(0, 0, 0)')).toBe(true)
       expect(entrances).toEqual([{ name: 'logo', covered: false }, { name: 'hours', covered: false }])
       expect(frames.some(frame => frame.cover === null && frame.links === 0 && frame.logo > 0 && frame.logo < 1)).toBe(true)
     }
@@ -653,7 +658,7 @@ test('reservation widget remains clickable and keyboard reachable above the menu
   await page.getByRole('dialog').getByRole('link', { name: 'IMPRESSUM', exact: true }).focus()
   await page.keyboard.press('Tab')
   expect(await frame.evaluate(el => document.activeElement === el)).toBeTruthy()
-  await page.getByRole('button', { name: 'Zur Startseite' }).click()
+  await page.getByRole('button', { name: 'Start' }).click()
   await expect(page.getByRole('dialog')).not.toBeVisible()
   expect(await page.locator('.home-hero').evaluate(el => el.inert)).toBe(false)
 })

@@ -1,17 +1,18 @@
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import drinksPdf from '@/assets/pdfs/kleinlaut.pdf'
+import { copy } from '../i18n.js'
 
 const EASE = [0.22, 1, 0.36, 1]
 const links = [
-  { label: 'DRINKS', href: drinksPdf },
-  { label: 'FOTOS', to: '/fotos' },
-  { label: 'RAUMPLAN', to: '/raumplan' },
-  { label: 'IMPRESSUM', to: '/impressum' },
+  { label: copy.links.drinks, href: drinksPdf },
+  { label: copy.links.photos, to: '/fotos' },
+  { label: copy.links.floorplan, to: '/raumplan' },
+  { label: copy.links.legal, to: '/impressum' },
 ]
 const MotionLink = motion.create(Link)
 
-export default function AnimatedMenuLinks({ className = 'menu-links font-display', label = 'Seitennavigation', onSelect }) {
+export default function AnimatedMenuLinks({ className = 'menu-links font-display', label = copy.pageNavigation, onSelect }) {
   const reduceMotion = useReducedMotion()
 
   return (

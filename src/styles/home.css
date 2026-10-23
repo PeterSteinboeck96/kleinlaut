@@ -130,6 +130,10 @@
   height: auto;
 }
 
+.home-map-mobile--live {
+  aspect-ratio: 2965 / 3950;
+}
+
 .home-map-desktop {
   display: none;
   height: clamp(20rem, 32vw, 32rem);

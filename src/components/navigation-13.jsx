@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'motion/react'
 import AnimatedMenuLinks from './AnimatedMenuLinks.jsx'
 import { useMenuTransition } from './MenuTransition.jsx'
+import { copy } from '../i18n.js'
 import '../styles/pages.css'
 import '../styles/navigation.css'
 
@@ -113,27 +114,27 @@ export default function Navigation13({ onBack } = {}) {
 
   return (
     <header className="top-bar nav13" data-input={keyboardFocus ? 'keyboard' : 'pointer'}>
-      <nav className="nav13-bar" aria-label="Hauptnavigation">
+      <nav className="nav13-bar" aria-label={copy.navigation}>
         {isMenuPage ? <Link to="/" className="nav13-toggle font-display" onClick={event => {
           if (!onBack || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
           event.preventDefault()
           onBack()
-        }}>STARTSEITE</Link> : <>
-          <button ref={triggerRef} className="nav13-toggle nav13-mobile font-display" type="button" onClick={event => { setKeyboardFocus(event.detail === 0); setOpen(true) }} aria-expanded={open} aria-controls="nav13-menu" aria-label="Menü öffnen">MENU</button>
-          <Link ref={desktopRef} className="nav13-toggle nav13-desktop font-display" to="/menu">MENU</Link>
+        }}>{copy.home}</Link> : <>
+          <button ref={triggerRef} className="nav13-toggle nav13-mobile font-display" type="button" onClick={event => { setKeyboardFocus(event.detail === 0); setOpen(true) }} aria-expanded={open} aria-controls="nav13-menu" aria-label={copy.openMenu}>{copy.menu}</button>
+          <Link ref={desktopRef} className="nav13-toggle nav13-desktop font-display" to="/menu">{copy.menu}</Link>
         </>}
       </nav>
-      <dialog ref={dialogRef} id="nav13-menu" className="nav13-dialog" aria-label="Menü" onKeyDown={event => {
+      <dialog ref={dialogRef} id="nav13-menu" className="nav13-dialog" aria-label={copy.menuDialog} onKeyDown={event => {
         if (event.key === 'Escape') { event.preventDefault(); closeMenu() }
         else keepFocusInMenu(event)
       }} onCancel={event => { event.preventDefault(); closeMenu() }}>
         <div className="nav13-panel-bar">
-          <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Zur Startseite">STARTSEITE</button>
+          <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label={copy.goHome}>{copy.home}</button>
         </div>
         <div className="nav13-menu-viewport">
           <div className="nav13-panel">
             <AnimatePresence onExitComplete={finishClose}>
-              {open && <AnimatedMenuLinks key="menu-links" className="nav13-menu-links menu-links font-display" label="Mobile Seitennavigation" onSelect={(event, item) => {
+              {open && <AnimatedMenuLinks key="menu-links" className="nav13-menu-links menu-links font-display" label={copy.mobileNavigation} onSelect={(event, item) => {
                 // Keep the menu mounted until its text has finished animating out.
                 if (item.to) event.preventDefault()
                 closeMenu(item.to ?? null)
