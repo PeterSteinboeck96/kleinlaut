@@ -39,8 +39,13 @@ export default function FotosPage() {
   return (
     <section className="site-page gallery-page">
       <TopBar />
-      <div className="gallery-caption">
+      {copy.galleryCaption && <div className="gallery-caption">
         <span>{copy.galleryCaption.map(line => <span className="block" key={line}>{line}</span>)}</span>
+      </div>}
+      <div className="gallery-scroll-hint" aria-hidden="true">
+        <svg viewBox="0 0 44 44" fill="currentColor" focusable="false">
+          <path d="M18 3h8v23l8-8 6 6-18 18L4 24l6-6 8 8Z" />
+        </svg>
       </div>
       <div className="gallery-content" ref={galleryRef}>
         <div className="gallery-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">

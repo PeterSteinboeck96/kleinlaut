@@ -78,12 +78,12 @@ test.describe('English page content', () => {
             await link.scrollIntoViewIfNeeded()
             await expect(link).toBeInViewport()
           }
-          await page.getByRole('link', { name: 'START', exact: true }).click()
+          await page.getByRole('link', { name: 'BACK', exact: true }).click()
           await expect(page).toHaveURL('/')
         }
         if (path === '/fotos') {
           await expect(page.getByRole('img', { name: /^Photo from the Kleinlaut gallery/ })).toHaveCount(60)
-          await expect(page.locator('.gallery-caption')).toHaveText('The colourful barin the heartof Vienna <3')
+          await expect(page.locator('.gallery-caption')).toHaveCount(0)
           const first = await page.locator('.gallery-photo').first().boundingBox()
           if (viewport.width < 1024) {
             expect(first.width).toBe(viewport.width)
