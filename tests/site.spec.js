@@ -558,6 +558,69 @@ test('mobile page links wait for the closing animation before navigating', async
   await expect(page.getByRole('dialog')).not.toBeVisible()
 })
 
+for (const { width, start } of [
+  { width: 390, start: '/' },
+  { width: 1440, start: '/' },
+  { width: 390, start: '/fotos' },
+]) {
+  test(`menu text exits, black fades, then home entrance replays from ${start} at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.goto(start)
+    if (start === '/') await expect(page.locator('.home-logo')).toHaveCSS('opacity', '1')
+    for (let cycle = 0; cycle < 2; cycle++) {
+      if (width < 1024) await page.getByRole('button', { name: 'Menü öffnen' }).click()
+      else await page.getByRole('link', { name: 'MENU', exact: true }).click()
+      await expect(page.locator('.menu-links a').last()).toHaveCSS('opacity', '1')
+      // Record rendered frames instead of relying on polling a 150ms transition.
+      await page.evaluate(() => {
+        const frames = []
+        const entrances = []
+        let frameId
+        const onAnimation = event => {
+          if (event.animationName === 'fade-rise' && event.target.matches('.home-logo, .home-hours')) {
+            entrances.push({ name: event.target.classList.contains('home-logo') ? 'logo' : 'hours', covered: Boolean(document.querySelector('.menu-reveal')) })
+          }
+        }
+        const capture = () => {
+          const cover = document.querySelector('.menu-reveal')
+          const logo = document.querySelector('.home-logo')
+          frames.push({
+            links: document.querySelectorAll('.menu-links a').length,
+            cover: cover ? Number(getComputedStyle(cover).opacity) : null,
+            black: cover ? getComputedStyle(cover).backgroundColor : null,
+            logo: logo ? Number(getComputedStyle(logo).opacity) : null,
+          })
+          frameId = requestAnimationFrame(capture)
+        }
+        document.addEventListener('animationstart', onAnimation)
+        frameId = requestAnimationFrame(capture)
+        window.menuTransitionProbe = {
+          frames,
+          stop: () => {
+            cancelAnimationFrame(frameId)
+            document.removeEventListener('animationstart', onAnimation)
+            return { frames, entrances }
+          },
+        }
+      })
+      if (width < 1024) await page.getByRole('button', { name: 'Zur Startseite' }).click()
+      else await page.getByRole('link', { name: 'ZURÜCK', exact: true }).click()
+      await expect.poll(() => page.evaluate(() => window.menuTransitionProbe.frames.some(frame => frame.cover !== null))).toBe(true)
+      await expect(page.locator('.menu-reveal')).toHaveCount(0)
+      await expect(page).toHaveURL('/')
+      await expect(page.locator('.home-logo')).toHaveCSS('opacity', '1')
+      await expect(page.locator('.home-hours')).toHaveCSS('opacity', '1')
+      const { frames, entrances } = await page.evaluate(() => window.menuTransitionProbe.stop())
+      const fade = frames.filter(frame => frame.cover !== null)
+      expect(fade.some(frame => frame.cover > 0 && frame.cover < 1)).toBe(true)
+      expect(fade.every(frame => frame.links === 0 && frame.logo === 0 && frame.black === 'rgb(0, 0, 0)')).toBe(true)
+      expect(entrances).toEqual([{ name: 'logo', covered: false }, { name: 'hours', covered: false }])
+      expect(frames.some(frame => frame.cover === null && frame.links === 0 && frame.logo > 0 && frame.logo < 1)).toBe(true)
+    }
+  })
+}
+
 
 test('reservation widget remains clickable and keyboard reachable above the menu', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })

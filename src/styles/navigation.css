@@ -71,6 +71,18 @@ html.navigation-open { background: #000; }
   color: #000;
 }
 .nav13-menu-links { flex-shrink: 0; margin: 0; }
+/* The route beneath is ready before this short fade starts. Keep the yellow
+   header and provider widget above the cover throughout the transition. */
+.menu-reveal {
+  position: fixed;
+  inset: var(--header-height) 0 auto;
+  z-index: 45;
+  height: calc(100vh + var(--safe-bottom));
+  background: #000;
+}
+@supports (height: 100lvh) {
+  .menu-reveal { height: calc(100lvh + var(--safe-bottom)); }
+}
 @media (min-width: 1024px) {
   .nav13 .nav13-mobile { display: none; }
   .nav13 .nav13-desktop { display: flex; }

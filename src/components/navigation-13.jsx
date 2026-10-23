@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'motion/react'
 import AnimatedMenuLinks from './AnimatedMenuLinks.jsx'
+import { useMenuTransition } from './MenuTransition.jsx'
 import '../styles/pages.css'
 import '../styles/navigation.css'
 
@@ -40,7 +41,7 @@ export default function Navigation13({ onBack } = {}) {
   const previousOverflowRef = useRef(null)
   const inertElementsRef = useRef([])
   const restoreThemeRef = useRef(null)
-  const navigate = useNavigate()
+  const { revealPage } = useMenuTransition()
 
   function restorePage() {
     restoreThemeRef.current?.()
@@ -63,9 +64,8 @@ export default function Navigation13({ onBack } = {}) {
     restorePage()
     const destination = destinationRef.current
     destinationRef.current = null
-    if (destination !== null) {
-      navigate(destination)
-    } else {
+    revealPage(destination)
+    if (destination === null) {
       const target = window.matchMedia('(min-width: 1024px)').matches ? desktopRef.current : triggerRef.current
       target?.focus({ preventScroll: true })
     }
@@ -90,7 +90,7 @@ export default function Navigation13({ onBack } = {}) {
     if (isMenuPage) return applyMenuTheme()
   }, [isMenuPage])
 
-  // Keep scrolling locked throughout the exit animation, and restore on unmount.
+  // Keep scrolling locked while the menu text exits, and restore on unmount.
   useEffect(() => () => restorePage(), [])
 
   useEffect(() => {

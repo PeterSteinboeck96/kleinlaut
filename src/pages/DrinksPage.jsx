@@ -1,4 +1,5 @@
 import TopBar from '../components/TopBar.jsx'
+import { useMenuTransition } from '../components/MenuTransition.jsx'
 import heroImage from '@/assets/images/hero.webp'
 import heroDesktopImage from '@/assets/images/hero_desktop.webp'
 import logoImage from '@/assets/images/logo.png'
@@ -9,6 +10,9 @@ const mapSrc =
   'https://www.google.com/maps?q=kleinlaut&z=18&output=embed'
 
 export default function DrinksPage() {
+  const { isRevealing } = useMenuTransition()
+  const entrance = isRevealing ? 'opacity-0' : 'animate-fade-rise'
+
   return (
     <section className="site-page home-page">
       <TopBar />
@@ -26,14 +30,14 @@ export default function DrinksPage() {
         <div className="home-hero-content">
           <div className="home-brand">
             <img
-              className="home-logo animate-fade-rise drop-shadow-lg"
+              className={`home-logo drop-shadow-lg ${entrance}`}
               src={logoImage}
               alt="Kleinlaut"
               width="1608"
               height="325"
             />
             <p
-              className="home-hours font-body font-bold text-accent animate-fade-rise"
+              className={`home-hours font-body font-bold text-accent ${entrance}`}
             >
               Dienstag bis Samstag<br />18:00 - 02:00
             </p>

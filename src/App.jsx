@@ -1,6 +1,7 @@
 import { useLayoutEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import SiteRoutes from './router.jsx'
+import MenuTransition from './components/MenuTransition.jsx'
 
 export default function App() {
   const location = useLocation()
@@ -11,7 +12,9 @@ export default function App() {
 
   return (
     <main className="text-white">
-      <SiteRoutes />
+      <MenuTransition>
+        <SiteRoutes />
+      </MenuTransition>
     </main>
   )
 }
