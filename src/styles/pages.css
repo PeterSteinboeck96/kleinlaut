@@ -84,10 +84,10 @@
   pointer-events: none;
   text-align: center;
   color: #ff0;
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-style: italic;
   line-height: 1.4;
-  text-shadow: 0 1px 8px #000, 0 1px 2px #000;
+  text-shadow: none;
 }
 
 @media (min-width: 640px) {

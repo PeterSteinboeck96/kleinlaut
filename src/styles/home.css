@@ -5,6 +5,14 @@
 .home-hero {
   position: relative;
   isolation: isolate;
+  /* Cover the area behind mobile browser bars; content still follows the visible viewport. */
+  min-height: calc(100vh - var(--header-height));
+}
+
+@supports (height: 100lvh) {
+  .home-hero {
+    min-height: calc(100lvh - var(--header-height));
+  }
 }
 
 .home-hero-background,
@@ -63,7 +71,7 @@
   justify-self: center;
   width: min(100%, 30rem);
   margin: 0;
-  padding-block: var(--space-8) calc(var(--widget-clearance) + var(--safe-bottom));
+  padding-block: var(--space-8) calc(var(--widget-clearance) + var(--safe-bottom) + var(--space-12));
   text-wrap: balance;
 }
 

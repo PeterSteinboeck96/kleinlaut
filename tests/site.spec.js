@@ -223,7 +223,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
     if (viewport.height > 480) {
       for (const name of ['Anruf', 'DMs', 'Mail']) {
         const linkBox = await page.getByRole('link', { name, exact: true }).boundingBox()
-        expect(linkBox.y + linkBox.height).toBeLessThanOrEqual(buttonBox.y)
+        expect(buttonBox.y - (linkBox.y + linkBox.height)).toBeGreaterThanOrEqual(48)
       }
     }
     await frame.evaluate((element) => {
@@ -260,6 +260,34 @@ for (const width of [320, 390]) {
         await expect(page).toHaveURL('/impressum')
       }
       if (path === '/impressum') await expectReachable(page.getByText('Gastronomie Betrieb'), page)
+    }
+  })
+}
+
+for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
+  test(`mobile hero covers browser chrome and reveals map only after scrolling at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+    for (const toolbarHeight of [100, 0, 72]) {
+      // Headless browsers have no native toolbar: model a smaller dynamic viewport
+      // while retaining the large viewport used for the background cover.
+      await page.evaluate((height) => {
+        document.documentElement.style.setProperty('--viewport-height', `${height}px`)
+        document.documentElement.style.setProperty('--safe-top', '44px')
+        document.documentElement.style.setProperty('--safe-bottom', '34px')
+        window.scrollTo(0, 0)
+      }, viewport.height - toolbarHeight)
+      const map = page.locator('.home-map')
+      const mapBox = await map.boundingBox()
+      const imageBox = await page.getByAltText('Cocktail in a dimly lit bar').boundingBox()
+      expect(mapBox.y).toBeGreaterThanOrEqual(viewport.height - 1)
+      expect(imageBox.y + imageBox.height).toBeGreaterThanOrEqual(viewport.height - 1)
+      const contactBottom = await page.getByRole('link', { name: 'Mail', exact: true }).evaluate(el => el.getBoundingClientRect().bottom)
+      const reservationFrameTop = viewport.height - toolbarHeight - 34 - 70
+      expect(reservationFrameTop - contactBottom).toBeGreaterThanOrEqual(48)
+      await page.evaluate(() => window.scrollBy(0, 300))
+      await expect(map).toBeInViewport()
     }
   })
 }
