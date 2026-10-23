@@ -44,7 +44,7 @@ test.beforeEach(async ({ page }) => {
 
 test('home preserves content, contact links and responsive assets', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('link', { name: 'Kleinlaut – Startseite' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible()
   await expect(page.getByText('Dienstag bis Samstag')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Anruf' })).toHaveAttribute('href', 'tel:+4366499224120')
   await expect(page.getByRole('link', { name: 'Mail', exact: true })).toHaveAttribute('href', 'mailto:hallo@kleinlaut.wien')
@@ -72,9 +72,9 @@ test('menu links, PDF, history and return navigation work', async ({ page, reque
     await page.locator('.menu-links').getByRole('link', { name, exact: true }).click()
     await expect(page).toHaveURL(path)
     await page.goBack()
-    await expect(page.getByRole('link', { name: 'Kleinlaut – Startseite' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible()
   }
-  await page.getByRole('link', { name: 'Kleinlaut – Startseite' }).click()
+  await page.goto('/')
   await expect(page).toHaveURL('/')
 })
 
@@ -87,7 +87,7 @@ test('gallery retains all photos, numeric order and scroll navigation', async ({
   await expect.poll(() => photos.first().evaluate((img) => img.naturalWidth)).toBeGreaterThan(0)
   await page.evaluate(() => window.scrollTo(0, 500))
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
-  await expect(page.getByRole('link', { name: 'Kleinlaut – Startseite' })).toBeInViewport()
+  await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeInViewport()
   await page.goto('/menu')
   await page.locator('.menu-links').getByRole('link', { name: 'FOTOS', exact: true }).click()
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
@@ -121,7 +121,7 @@ for (const viewport of viewports) {
     for (const route of routes) {
       await page.goto(route)
       await expectNoHorizontalOverflow(page)
-      const headerLink = page.getByRole('link', { name: 'Kleinlaut – Startseite' })
+      const headerLink = page.getByRole('navigation', { name: 'Hauptnavigation' })
       const headerBox = await headerLink.boundingBox()
       expect(headerBox.height).toBeGreaterThanOrEqual(44)
       await expectCentered(headerLink, page)
@@ -181,7 +181,7 @@ test('resizing from portrait to short landscape and back keeps navigation usable
   await expectCentered(page.getByText('JP Frameworks GmbH'), page)
   await expectReachable(page.getByText('Gastronomie Betrieb'), page)
   await page.goto('/menu')
-  await page.getByRole('link', { name: 'Kleinlaut – Startseite' }).click()
+  await page.goto('/')
   await expectReachable(page.getByRole('link', { name: 'Mail', exact: true }), page)
   await expectNoHorizontalOverflow(page)
 })
@@ -388,7 +388,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
       await nav.getByRole('link', { name, exact: true }).click()
       await expect(page).toHaveURL(path)
     }
-    await page.getByRole('link', { name: 'Kleinlaut – Startseite' }).click()
+    await page.goto('/')
     await expect(page).toHaveURL('/')
     await expectNoHorizontalOverflow(page)
   })
@@ -421,3 +421,41 @@ test('mobile menu traps focus, closes with Escape, restores scrolling and closes
   await dialog.getByRole('button', { name: 'Menü schließen' }).click()
   await expect(dialog).not.toBeVisible()
 })
+
+for (const width of [390, 1440]) {
+  test(`simplified header has the requested controls at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+    const nav = page.getByRole('navigation', { name: 'Hauptnavigation' })
+    if (width < 1024) {
+      const toggle = nav.getByRole('button', { name: 'Menü öffnen' })
+      await expect(toggle).toHaveText('MENU')
+      await expect(nav.locator('svg')).toHaveCount(0)
+      const box = await toggle.boundingBox()
+      expect(box.x).toBe(0)
+      expect(box.width).toBe(width)
+      await toggle.click({ position: { x: 2, y: box.height / 2 } })
+      const close = page.getByRole('button', { name: 'Menü schließen' })
+      await expect(close).toHaveText('ZURÜCK')
+      const closeBox = await close.boundingBox()
+      expect(closeBox.x).toBe(0)
+      expect(closeBox.width).toBe(width)
+      await close.click({ position: { x: width - 2, y: closeBox.height / 2 } })
+      await expect(page.getByRole('dialog')).not.toBeVisible()
+    } else {
+      const links = nav.getByRole('link')
+      await expect(links).toHaveCount(4)
+      await expect(nav.getByRole('button')).toHaveCount(0)
+      const boxes = await links.evaluateAll(elements => elements.map(el => {
+        const rect = el.getBoundingClientRect()
+        return { left: rect.left, right: rect.right, weight: getComputedStyle(el).fontWeight }
+      }))
+      expect(Math.abs((boxes[0].left + boxes[3].right) / 2 - width / 2)).toBeLessThanOrEqual(1)
+      for (let i = 0; i < boxes.length; i++) {
+        expect(boxes[i].weight).toBe('800')
+        if (i) expect(boxes[i].left - boxes[i - 1].right).toBeGreaterThanOrEqual(32)
+      }
+    }
+  })
+}
