@@ -36,7 +36,7 @@ test('pull-down exposes one black backing below the yellow menu and news row', a
 
 test('floorplan fits changing webview heights without scrolling and releases its lock on navigation', async ({ page }) => {
   await page.goto('/raumplan')
-  await expect(page.locator('html')).toHaveClass(/floorplan-open/)
+  await expect(page.locator('html')).toHaveClass(/fixed-page-open/)
   await expect(page.locator('body')).toHaveCSS('position', 'fixed')
   await page.evaluate(() => {
     window.testVisualHeight = 634
@@ -67,7 +67,7 @@ test('floorplan fits changing webview heights without scrolling and releases its
   await page.getByRole('button', { name: 'Menü öffnen' }).click()
   await page.getByRole('dialog').getByRole('link', { name: 'FOTOS', exact: true }).click()
   await expect(page).toHaveURL('/fotos')
-  await expect(page.locator('html')).not.toHaveClass(/floorplan-open/)
+  await expect(page.locator('html')).not.toHaveClass(/fixed-page-open/)
   await expect(page.locator('body')).toHaveCSS('position', 'static')
   await page.evaluate(() => scrollTo(0, 500))
   expect(await page.evaluate(() => scrollY)).toBe(500)
@@ -75,7 +75,7 @@ test('floorplan fits changing webview heights without scrolling and releases its
   await expect(page.locator('body')).toHaveCSS('position', 'fixed')
   expect(await page.evaluate(() => scrollY)).toBe(0)
   await page.reload()
-  await expect(page.locator('html')).toHaveClass(/floorplan-open/)
+  await expect(page.locator('html')).toHaveClass(/fixed-page-open/)
 })
 
 test('touch gestures cannot drag the floorplan, but the open menu can still scroll', async ({ page, context }, testInfo) => {

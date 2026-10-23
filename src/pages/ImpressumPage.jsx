@@ -1,10 +1,13 @@
 import TopBar from '../components/TopBar.jsx'
+import useFixedPage from '../hooks/useFixedPage.js'
 import { copy } from '../i18n.js'
 import '../styles/pages.css'
 
 export default function ImpressumPage() {
+  const pageRef = useFixedPage()
+
   return (
-    <section className="site-page imprint-page">
+    <section ref={pageRef} className="site-page fixed-page imprint-page">
       <TopBar />
       <div className="page-panel">
         <div className="imprint-details">
