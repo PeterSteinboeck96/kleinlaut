@@ -269,6 +269,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     await page.setViewportSize(viewport)
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
+    // Model the stable small viewport separately from the changing toolbar height.
+    await page.locator('.home-page').evaluate((el, height) => el.style.setProperty('--home-content-height', `${height}px`), viewport.height - 100)
     for (const toolbarHeight of [100, 0, 72]) {
       // Headless browsers have no native toolbar: model a smaller dynamic viewport
       // while retaining the large viewport used for the background cover.
@@ -323,27 +325,39 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
 }
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
-  test(`contact disappears as a whole before the header clips it at ${viewport.width}px`, async ({ page }) => {
+  test(`contact stays anchored as browser controls change and scrolls beneath the header at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport)
-    await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
-    // Model the iPhone browser's safe areas, including its taller fixed header.
     await page.addStyleTag({ content: ':root { --safe-top: 47px; --safe-bottom: 34px; }' })
+    await page.locator('.home-page').evaluate((el, height) => el.style.setProperty('--home-content-height', `${height}px`), viewport.height - 100)
     const contact = page.locator('.home-contact')
-    const initialHeight = await page.evaluate(() => document.documentElement.scrollHeight)
-    const contactTop = (await contact.boundingBox()).y
+    const documentTop = await contact.evaluate(el => el.getBoundingClientRect().top + scrollY)
+    for (const toolbarHeight of [100, 0, 72]) {
+      await page.evaluate(height => document.documentElement.style.setProperty('--viewport-height', `${height}px`), viewport.height - toolbarHeight)
+      expect(await contact.evaluate(el => el.getBoundingClientRect().top + scrollY)).toBeCloseTo(documentTop, 0)
+      await expect(contact).toHaveCSS('visibility', 'visible')
+      await expect(contact).toHaveCSS('opacity', '1')
+    }
     const headerBottom = await page.locator('header').evaluate(el => el.getBoundingClientRect().bottom)
-    await page.evaluate(y => window.scrollTo(0, y), contactTop - headerBottom - 24)
-    await expect(contact).toBeVisible()
-    await page.evaluate(() => window.scrollBy(0, 12))
-    await expect(contact).toBeHidden()
-    // No collapsed space, scroll jump, or invisible focusable contact links.
-    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(initialHeight)
-    await expect(page.getByRole('link', { name: 'Mail', exact: true })).toHaveCount(0)
-    await page.evaluate(() => window.scrollBy(0, 150))
-    await expect(contact).toBeHidden()
+    await page.evaluate(y => window.scrollTo(0, y), documentTop - headerBottom + 8)
+    // Normal document scrolling: the first line passes under the header without
+    // hiding the rest of the paragraph or detaching it from its original position.
+    await expect(contact).toHaveCSS('visibility', 'visible')
+    await expect(contact).toHaveCSS('opacity', '1')
+    expect(await contact.evaluate(el => el.getBoundingClientRect().top + scrollY)).toBeCloseTo(documentTop, 0)
+    const textBottom = await contact.evaluate(el => {
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      return range.getBoundingClientRect().bottom + scrollY
+    })
+    await page.evaluate(y => window.scrollTo(0, y), textBottom - headerBottom + 2)
+    expect(await contact.evaluate(el => {
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      return range.getBoundingClientRect().bottom
+    })).toBeLessThanOrEqual(headerBottom)
     await page.evaluate(() => window.scrollTo(0, 0))
-    await expect(contact).toBeVisible()
     await expect(page.getByRole('link', { name: 'Mail', exact: true })).toBeVisible()
+    expect(await contact.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(documentTop, 0)
   })
 }

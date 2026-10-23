@@ -1,5 +1,14 @@
 .home-page {
   background: #000;
+  --home-content-height: 100vh;
+}
+
+@supports (height: 100svh) {
+  .home-page {
+    /* Anchor mobile copy to the viewport with browser controls expanded.
+       Collapsing Safari's toolbars must not move the copy within the hero. */
+    --home-content-height: 100svh;
+  }
 }
 
 .home-hero {
@@ -20,7 +29,7 @@
   .home-hero {
     /* Safari shows document content behind its translucent bottom toolbar.
        Keep a full large viewport of photograph BELOW the header, plus the
-       bottom safe area. Only the background grows; text uses the visible height. */
+       bottom safe area. Text remains anchored to the stable small viewport. */
     min-height: calc(var(--hero-cover-height) + var(--safe-bottom));
   }
 }
@@ -45,7 +54,7 @@
 .home-hero-content {
   display: grid;
   grid-template-rows: minmax(min-content, 1fr) auto;
-  min-height: max(30rem, calc(var(--viewport-height) - var(--header-height)));
+  min-height: max(30rem, calc(var(--home-content-height) - var(--header-height)));
   padding-inline: var(--page-gutter);
   text-align: center;
 }
@@ -85,10 +94,6 @@
   margin: 0;
   padding-bottom: calc(var(--widget-clearance) + var(--safe-bottom) + var(--space-4));
   text-wrap: pretty;
-}
-
-.home-contact[data-obscured] {
-  visibility: hidden;
 }
 
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {

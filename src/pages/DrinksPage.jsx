@@ -1,4 +1,3 @@
-import { useLayoutEffect, useRef } from 'react'
 import TopBar from '../components/TopBar.jsx'
 import heroImage from '@/assets/images/hero.webp'
 import heroDesktopImage from '@/assets/images/hero_desktop.webp'
@@ -10,43 +9,6 @@ const mapSrc =
   'https://www.google.com/maps?q=kleinlaut&z=18&output=embed'
 
 export default function DrinksPage() {
-  const contactRef = useRef(null)
-
-  useLayoutEffect(() => {
-    const contact = contactRef.current
-    const header = contact.closest('.site-page').querySelector('.top-bar')
-    let animationFrame = 0
-
-    function updateVisibility() {
-      animationFrame = 0
-      // Hide the entire paragraph before the fixed header clips its first line.
-      // Visibility preserves its layout so scrolling cannot make the page jump.
-      contact.toggleAttribute('data-obscured', contact.getBoundingClientRect().top < header.getBoundingClientRect().bottom + 16)
-    }
-
-    function scheduleUpdate() {
-      if (!animationFrame) animationFrame = window.requestAnimationFrame(updateVisibility)
-    }
-
-    const observer = new ResizeObserver(scheduleUpdate)
-    observer.observe(header)
-    observer.observe(contact)
-    window.addEventListener('scroll', scheduleUpdate, { passive: true })
-    window.addEventListener('resize', scheduleUpdate)
-    window.addEventListener('pageshow', scheduleUpdate)
-    window.visualViewport?.addEventListener('resize', scheduleUpdate)
-    updateVisibility()
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame)
-      observer.disconnect()
-      window.removeEventListener('scroll', scheduleUpdate)
-      window.removeEventListener('resize', scheduleUpdate)
-      window.removeEventListener('pageshow', scheduleUpdate)
-      window.visualViewport?.removeEventListener('resize', scheduleUpdate)
-    }
-  }, [])
-
   return (
     <section className="site-page home-page">
       <TopBar />
@@ -76,10 +38,7 @@ export default function DrinksPage() {
               Dienstag bis Samstag<br />18:00 - 02:00
             </p>
           </div>
-          <p
-            ref={contactRef}
-            className="home-contact text-accent animate-fade-in"
-          >
+          <p className="home-contact text-accent">
             Bei Fragen melde dich gerne per{' '}
             <a className="underline underline-offset-2" href="tel:+4366499224120">Anruf</a>,
             slide in unsere{' '}
