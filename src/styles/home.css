@@ -5,13 +5,23 @@
 .home-hero {
   position: relative;
   isolation: isolate;
-  /* Cover the area behind mobile browser bars; content still follows the visible viewport. */
+  --hero-cover-height: 100vh;
   min-height: calc(100vh - var(--header-height));
 }
 
 @supports (height: 100lvh) {
   .home-hero {
+    --hero-cover-height: 100lvh;
     min-height: calc(100lvh - var(--header-height));
+  }
+}
+
+@media (max-width: 63.999rem), (hover: none) and (pointer: coarse) {
+  .home-hero {
+    /* Safari shows document content behind its translucent bottom toolbar.
+       Keep a full large viewport of photograph BELOW the header, plus the
+       bottom safe area. Only the background grows; text uses the visible height. */
+    min-height: calc(var(--hero-cover-height) + var(--safe-bottom));
   }
 }
 
