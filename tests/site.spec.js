@@ -146,13 +146,13 @@ for (const viewport of viewports) {
         const floorPlan = page.getByAltText('Raumplan')
         await expect.poll(() => floorPlan.evaluate((img) => img.naturalWidth)).toBeGreaterThan(0)
         await expectCentered(floorPlan, page)
-        // A readable plan may be taller than a landscape viewport; both edges must remain reachable.
-        await floorPlan.evaluate((image) => window.scrollTo(0, image.getBoundingClientRect().top + window.scrollY - document.querySelector('header').getBoundingClientRect().height))
-        expect((await floorPlan.boundingBox()).y).toBeGreaterThanOrEqual(headerBox.height - 1)
-        await floorPlan.evaluate((image) => window.scrollTo(0, image.getBoundingClientRect().bottom + window.scrollY - window.innerHeight))
         const floorPlanBox = await floorPlan.boundingBox()
-        expect(floorPlanBox.y + floorPlanBox.height).toBeLessThanOrEqual(viewport.height + 1)
+        expect(floorPlanBox.y).toBeGreaterThanOrEqual(headerBox.height)
+        expect(floorPlanBox.y + floorPlanBox.height).toBeLessThanOrEqual(viewport.height - 68)
         expect(floorPlanBox.y + floorPlanBox.height).toBeGreaterThan(headerBox.height)
+        await page.evaluate(() => window.scrollTo(0, 500))
+        expect(await page.evaluate(() => window.scrollY)).toBe(0)
+        expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(viewport.height)
       }
       if (route === '/impressum') {
         await expectCentered(page.getByText('JP Frameworks GmbH'), page)

@@ -87,6 +87,12 @@
   text-wrap: pretty;
 }
 
+.home-map {
+  background: #000;
+  /* Cover subpixel seams against the yellow root canvas in mobile WebKit. */
+  box-shadow: 0 2px 0 #000;
+}
+
 .home-map-mobile,
 .home-map-mobile img {
   display: block;
