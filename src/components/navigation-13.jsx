@@ -16,7 +16,10 @@ const MotionLink = motion.create(Link)
 
 function keepFocusInMenu(event) {
   if (event.key !== 'Tab') return
-  const controls = Array.from(event.currentTarget.querySelectorAll('a[href], button:not([disabled])'))
+  const controls = [
+    ...event.currentTarget.querySelectorAll('a[href], button:not([disabled])'),
+    ...document.querySelectorAll('iframe.molzait'),
+  ]
   if (!controls.length) return
   // Safari can skip links in its default tab order. Include every menu action.
   const index = controls.indexOf(document.activeElement)
@@ -50,10 +53,13 @@ export default function Navigation13() {
   const desktopRef = useRef(null)
   const destinationRef = useRef(null)
   const previousOverflowRef = useRef(null)
+  const inertElementsRef = useRef([])
   const navigate = useNavigate()
   const reduceMotion = useReducedMotion()
 
-  function restoreScrolling() {
+  function restorePage() {
+    for (const [element, wasInert] of inertElementsRef.current) element.inert = wasInert
+    inertElementsRef.current = []
     if (previousOverflowRef.current === null) return
     document.body.style.overflow = previousOverflowRef.current
     previousOverflowRef.current = null
@@ -67,7 +73,7 @@ export default function Navigation13() {
 
   function finishClose() {
     dialogRef.current?.close()
-    restoreScrolling()
+    restorePage()
     const destination = destinationRef.current
     destinationRef.current = null
     if (destination !== null) {
@@ -82,12 +88,18 @@ export default function Navigation13() {
     if (!open) return
     const dialog = dialogRef.current
     previousOverflowRef.current = document.body.style.overflow
-    dialog.showModal()
+    // A non-modal dialog lets the provider iframe keep its own foreground layer.
+    const header = dialog.closest('header')
+    const background = [...header.parentElement.children].filter(element => element !== header)
+    background.push(header.querySelector('.nav13-bar'))
+    inertElementsRef.current = background.map(element => [element, element.inert])
+    for (const element of background) element.inert = true
+    dialog.show()
     document.body.style.overflow = 'hidden'
   }, [open])
 
   // Keep scrolling locked throughout the exit animation, and restore on unmount.
-  useEffect(() => () => restoreScrolling(), [])
+  useEffect(() => () => restorePage(), [])
 
   useEffect(() => {
     const onKey = () => setKeyboardFocus(true)
@@ -115,30 +127,36 @@ export default function Navigation13() {
           {links.map(item => <RollLink key={item.label} item={item} reduceMotion={reduceMotion} />)}
         </div>
       </nav>
-      <dialog ref={dialogRef} id="nav13-menu" className="nav13-dialog" aria-label="Menü" onKeyDown={keepFocusInMenu} onCancel={event => { event.preventDefault(); closeMenu() }}>
+      <dialog ref={dialogRef} id="nav13-menu" className="nav13-dialog" aria-label="Menü" onKeyDown={event => {
+        if (event.key === 'Escape') { event.preventDefault(); closeMenu() }
+        else keepFocusInMenu(event)
+      }} onCancel={event => { event.preventDefault(); closeMenu() }}>
         <div className="nav13-panel-bar">
           <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Menü schließen">MENU</button>
         </div>
         <div className="nav13-menu-viewport">
-          <AnimatePresence onExitComplete={finishClose}>
-            {open && <motion.div key="menu" className="nav13-panel" initial={reduceMotion ? false : { y: '-100%' }} animate={{ y: 0 }} exit={{ y: reduceMotion ? 0 : '-100%' }} transition={{ duration: reduceMotion ? 0 : 0.6, ease: EASE }}>
-              <motion.nav className="nav13-menu-links" aria-label="Mobile Seitennavigation" initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.06, delayChildren: reduceMotion ? 0 : 0.2 } } }}>
+          <div className="nav13-panel">
+            <AnimatePresence onExitComplete={finishClose}>
+              {open && <motion.nav key="menu-links" className="nav13-menu-links" aria-label="Mobile Seitennavigation" initial="hidden" animate="visible" exit="exit" variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.06 } },
+                exit: { transition: { staggerChildren: reduceMotion ? 0 : 0.03 } },
+              }}>
                 {links.map(item => <NavLink key={item.label} item={item} onClick={event => {
                   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
-                  // Changing routes earlier would unmount the menu before it can slide out.
+                  // Keep the menu mounted until its text has finished animating out.
                   if (item.to) event.preventDefault()
                   closeMenu(item.to ?? null)
-                }} className="nav13-menu-link" variants={{ hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 26 }, visible: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.5, ease: EASE } } }}>
+                }} className="nav13-menu-link" variants={{
+                  hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 26 },
+                  visible: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.5, ease: EASE } },
+                  exit: { opacity: 0, y: reduceMotion ? 0 : -12, transition: { duration: reduceMotion ? 0 : 0.2, ease: EASE } },
+                }}>
                   <span className="font-display">{item.label}</span>
                 </NavLink>)}
-              </motion.nav>
-              <div className="nav13-footer">
-                <p>Wir freuen uns auf dich.</p>
-                <a href="mailto:hallo@kleinlaut.wien">hallo@kleinlaut.wien</a>
-                <div className="nav13-footer-actions"><a href="tel:+4366499224120">Anrufen</a><a href="https://www.instagram.com/kleinlaut1070/" target="_blank" rel="noreferrer">Instagram</a></div>
-              </div>
-            </motion.div>}
-          </AnimatePresence>
+              </motion.nav>}
+            </AnimatePresence>
+          </div>
         </div>
       </dialog>
     </header>

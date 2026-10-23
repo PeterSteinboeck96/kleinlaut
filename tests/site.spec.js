@@ -417,8 +417,8 @@ test('mobile menu traps focus, closes with Escape, restores scrolling and closes
   await expectNoHorizontalOverflow(page)
   await page.setViewportSize({ width: 320, height: 568 })
   await opener.click()
-  await dialog.getByRole('link', { name: 'Instagram' }).scrollIntoViewIfNeeded()
-  await expect(dialog.getByRole('link', { name: 'Instagram' })).toBeInViewport()
+  await dialog.getByRole('link', { name: 'IMPRESSUM', exact: true }).scrollIntoViewIfNeeded()
+  await expect(dialog.getByRole('link', { name: 'IMPRESSUM', exact: true })).toBeInViewport()
   await dialog.getByRole('button', { name: 'Menü schließen' }).click()
   await expect(dialog).not.toBeVisible()
 })
@@ -441,9 +441,7 @@ for (const width of [390, 1440]) {
       await expect(close).toHaveText('MENU')
       await expect(close).toHaveCSS('outline-style', 'none')
       await expect(close).toHaveCSS('text-decoration-line', 'none')
-      for (const action of await page.locator('.nav13-footer-actions a').all()) {
-        await expect(action).toHaveCSS('border-top-width', '0px')
-      }
+      await expect(page.locator('.nav13-footer')).toHaveCount(0)
       await page.keyboard.press('Tab')
       await expect(page.getByRole('dialog').getByRole('link', { name: 'START', exact: true })).toHaveCSS('text-decoration-line', 'underline')
       const closeBox = await close.boundingBox()
@@ -469,7 +467,7 @@ for (const width of [390, 1440]) {
 }
 
 for (const start of ['/fotos', '/raumplan', '/impressum']) {
-  test(`back slides the menu closed before returning home from ${start}`, async ({ page }) => {
+  test(`menu text animates out before returning home from ${start}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await page.goto(start)
@@ -479,8 +477,12 @@ for (const start of ['/fotos', '/raumplan', '/impressum']) {
     const panelTop = await page.locator('.nav13-panel-bar').evaluate(el => el.getBoundingClientRect().bottom)
     await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(panelTop, 0)
     expect(await dialog.evaluate(el => getComputedStyle(el, '::backdrop').backgroundColor)).toBe('rgba(0, 0, 0, 0)')
+    await expect(dialog.getByRole('link', { name: 'IMPRESSUM', exact: true })).toHaveCSS('opacity', '1')
+    const firstLink = dialog.getByRole('link', { name: 'START', exact: true })
     await dialog.getByRole('button', { name: 'Menü schließen' }).click()
-    await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeLessThan(panelTop - 1)
+    await expect.poll(() => firstLink.evaluate(el => Number(getComputedStyle(el).opacity))).toBeLessThan(0.99)
+    await expect(panel).toHaveCSS('transform', 'none')
+    await expect(panel).toHaveCSS('background-color', 'rgb(0, 0, 0)')
     await expect(dialog).toBeVisible()
     await expect(page).toHaveURL(start)
     expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden')
@@ -499,9 +501,44 @@ test('mobile page links wait for the closing animation before navigating', async
   const panel = page.locator('.nav13-panel')
   const panelTop = await page.locator('.nav13-panel-bar').evaluate(el => el.getBoundingClientRect().bottom)
   await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(panelTop, 0)
+  await expect(page.getByRole('dialog').getByRole('link', { name: 'IMPRESSUM', exact: true })).toHaveCSS('opacity', '1')
+  const firstLink = page.getByRole('dialog').getByRole('link', { name: 'START', exact: true })
   await page.getByRole('dialog').getByRole('link', { name: 'FOTOS', exact: true }).click()
-  await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeLessThan(panelTop - 1)
+  await expect.poll(() => firstLink.evaluate(el => Number(getComputedStyle(el).opacity))).toBeLessThan(0.99)
+  await expect(panel).toHaveCSS('transform', 'none')
   await expect(page).toHaveURL('/')
   await expect(page).toHaveURL('/fotos')
   await expect(page.getByRole('dialog')).not.toBeVisible()
+})
+
+
+test('reservation widget remains clickable and keyboard reachable above the menu', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  await page.evaluate(() => {
+    const frame = document.createElement('iframe')
+    frame.className = 'molzait'
+    frame.title = 'Reservation foreground fixture'
+    frame.style.cssText = 'position:fixed;z-index:2147483647;bottom:0;right:0;width:210px;height:70px;border:0'
+    frame.srcdoc = '<button onclick="this.textContent=String.fromCharCode(79,75)">Reservieren</button>'
+    document.body.append(frame)
+  })
+  await page.getByRole('button', { name: 'Menü öffnen' }).click()
+  const panel = page.locator('.nav13-panel')
+  await expect(panel).toHaveCSS('background-color', 'rgb(0, 0, 0)')
+  await expect(panel).toHaveCSS('transform', 'none')
+  await expect(page.getByRole('dialog').locator('a[href^="mailto:"], a[href^="tel:"]')).toHaveCount(0)
+  const frame = page.getByTitle('Reservation foreground fixture')
+  expect(await frame.evaluate(el => {
+    const rect = el.getBoundingClientRect()
+    return document.elementFromPoint(rect.x + 10, rect.y + 10) === el && !el.closest('[inert]')
+  })).toBeTruthy()
+  await page.frameLocator('iframe.molzait').getByRole('button', { name: 'Reservieren' }).click()
+  await expect(page.frameLocator('iframe.molzait').getByRole('button', { name: 'OK' })).toBeVisible()
+  await page.getByRole('dialog').getByRole('link', { name: 'IMPRESSUM', exact: true }).focus()
+  await page.keyboard.press('Tab')
+  expect(await frame.evaluate(el => document.activeElement === el)).toBeTruthy()
+  await page.getByRole('button', { name: 'Menü schließen' }).click()
+  await expect(page.getByRole('dialog')).not.toBeVisible()
+  expect(await page.locator('.home-hero').evaluate(el => el.inert)).toBe(false)
 })
