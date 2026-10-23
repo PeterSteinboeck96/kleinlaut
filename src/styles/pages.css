@@ -46,6 +46,7 @@
   margin-bottom: var(--space-4);
   color: #ff0;
   font-size: 1.125rem;
+  font-weight: 700;
 }
 
 .imprint-details a {
@@ -64,7 +65,7 @@
 }
 
 .gallery-grid {
-  gap: var(--space-1);
+  gap: 0;
 }
 
 .gallery-photo {
