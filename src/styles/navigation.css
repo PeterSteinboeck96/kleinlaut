@@ -19,7 +19,6 @@
   text-decoration: underline;
   text-underline-offset: 0.25em;
 }
-html.navigation-open { background: #000; }
 .navigation-open .top-bar { background: #ff0; color: #000; }
 /* Safari can clip fixed layers above its translucent bottom toolbar. Hide the
    inert page content too, so the document behind that toolbar paints black.

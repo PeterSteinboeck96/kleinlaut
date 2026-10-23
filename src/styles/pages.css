@@ -55,10 +55,23 @@
   max-width: 100%;
 }
 
-.floorplan-page {
+html.floorplan-open,
+.floorplan-open body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.floorplan-open body {
   position: fixed;
   inset: 0;
-  height: var(--viewport-height);
+}
+
+.site-page.floorplan-page {
+  position: fixed;
+  inset: 0;
+  height: var(--floorplan-viewport-height, var(--viewport-height));
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -66,6 +79,7 @@
   height: 100%;
   min-height: 0;
   grid-template-rows: minmax(0, 1fr);
+  touch-action: pinch-zoom;
 }
 
 .floorplan-image {

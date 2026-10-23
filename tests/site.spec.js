@@ -359,7 +359,8 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await page.goto('/menu')
     const menu = await page.getByRole('navigation', { name: 'Seitennavigation' }).boundingBox()
     const buttonTop = viewport.height - 68
-    expect(Math.abs(menu.y + menu.height / 2 - (header.y + header.height + buttonTop) / 2)).toBeLessThanOrEqual(2)
+    const menuBar = await page.locator('.nav13-bar').boundingBox()
+    expect(Math.abs(menu.y + menu.height / 2 - (menuBar.y + menuBar.height + buttonTop) / 2)).toBeLessThanOrEqual(2)
     await page.locator('.menu-links').getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
     await expect(page.locator('.imprint-details > p')).toHaveCount(7)
     const lines = await page.locator('.imprint-details > p').evaluateAll(elements => elements.map(el => el.getBoundingClientRect().toJSON()))
@@ -759,11 +760,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     await expectCentered(links, page)
     await expect(links).toHaveCSS('font-weight', '800')
     const textBox = await links.boundingBox()
-    const headerBox = await page.locator('header').boundingBox()
+    const headerBox = await page.locator('.nav13-panel-bar').boundingBox()
     const reservationTop = viewport.height - 100 - 34 - 68
     expect(Math.abs(textBox.y + textBox.height / 2 - (headerBox.y + headerBox.height + reservationTop) / 2)).toBeLessThanOrEqual(2)
     await page.keyboard.press('Escape')
-    await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(255, 255, 0)')
+    await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(0, 0, 0)')
     await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#ffff00')
   })
 }

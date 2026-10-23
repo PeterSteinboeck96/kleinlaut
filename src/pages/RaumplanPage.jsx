@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import TopBar from '../components/TopBar.jsx'
 import raumplanImage from '@/assets/images/raumplan.webp'
 import { copy, language } from '../i18n.js'
@@ -11,8 +12,34 @@ const roomLabels = [
 ]
 
 export default function RaumplanPage() {
+  const pageRef = useRef(null)
+
+  useLayoutEffect(() => {
+    const root = document.documentElement
+    const viewport = window.visualViewport
+    root.classList.add('floorplan-open')
+
+    function updateHeight() {
+      // Webviews can expose less space than 100dvh. Do not shrink the artwork when zooming.
+      if (viewport && viewport.scale !== 1) return
+      const height = Math.min(window.innerHeight, viewport?.height || window.innerHeight)
+      if (height > 0) pageRef.current.style.setProperty('--floorplan-viewport-height', `${height}px`)
+    }
+
+    updateHeight()
+    window.addEventListener('resize', updateHeight)
+    window.addEventListener('pageshow', updateHeight)
+    viewport?.addEventListener('resize', updateHeight)
+    return () => {
+      root.classList.remove('floorplan-open')
+      window.removeEventListener('resize', updateHeight)
+      window.removeEventListener('pageshow', updateHeight)
+      viewport?.removeEventListener('resize', updateHeight)
+    }
+  }, [])
+
   return (
-    <section className="site-page floorplan-page">
+    <section ref={pageRef} className="site-page floorplan-page">
       <TopBar />
       <div className="page-panel">
         {language === 'de' ? <img className="floorplan-image" src={raumplanImage} alt={copy.floorplanAlt} width="3490" height="5478" decoding="async" /> : (
