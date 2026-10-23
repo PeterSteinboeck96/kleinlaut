@@ -39,7 +39,7 @@
 
 .news-toggle {
   cursor: grab;
-  touch-action: pan-y pinch-zoom;
+  touch-action: pinch-zoom;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -48,6 +48,7 @@
 
 .news-static {
   overflow-x: auto;
+  touch-action: pan-x pinch-zoom;
   padding-inline: var(--page-gutter);
   scrollbar-width: none;
 }

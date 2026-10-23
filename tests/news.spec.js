@@ -67,6 +67,7 @@ for (const width of [320, 390, 1024, 1920, 3840]) {
 
     await expect(bar.locator('.news-message').first()).toHaveCSS('text-transform', 'uppercase')
     await expect(bar.locator('.news-message').first()).toHaveCSS('padding-right', '0px')
+    await expect(bar.locator('.news-toggle')).toHaveCSS('touch-action', 'pinch-zoom')
     expect(await bar.locator('.news-message').first().textContent()).toBe(`${news} • `)
     const frames = await sampleTrack(track, 220)
     expect(frames.length).toBeGreaterThan(3)
@@ -203,9 +204,11 @@ test('keyboard movement crosses loop boundaries with exactly one space around ea
   expect(repeated).toMatch(/ • $/)
 })
 
-test('touch swipe has momentum while vertical gestures still scroll the page', async ({ page, context }, testInfo) => {
+test('touch swipes keep the page still on the ticker and allow scrolling outside it', async ({ page, context }, testInfo) => {
   test.skip(testInfo.project.name !== 'android-chrome', 'Real touch gestures use Chromium CDP; other engines cover the same pointer handlers with mouse input.')
   await page.goto('/')
+  await page.evaluate(() => scrollTo(0, 300))
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(300)
   const client = await context.newCDPSession(page)
   const button = page.locator('.news-toggle')
   const track = page.locator('.news-track')
@@ -215,20 +218,43 @@ test('touch swipe has momentum while vertical gestures still scroll the page', a
   const y = box.y + box.height / 2
   await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 60, y }] })
   for (let step = 1; step <= 8; step++) {
-    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 60 + step * 20, y }] })
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 60 + step * 20, y: y - step * 6 }] })
     await nextFrame(page)
   }
   await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
   expect(travel(await sampleTrack(track, 200))).toBeGreaterThan(15)
+  expect(await page.evaluate(() => scrollY)).toBe(300)
   await expect(button).toHaveAttribute('data-paused', 'true')
-  await expect(button).toHaveCSS('touch-action', 'pan-y pinch-zoom')
-  // Swipe up beginning on the bar: the browser, not the ticker, owns vertical panning.
+  await expect(button).toHaveCSS('touch-action', 'pinch-zoom')
+  // Even a vertical drift leaving the bar must not hand the gesture to the page.
   await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 180, y }] })
   for (let step = 1; step <= 5; step++) {
     await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 180, y: y - step * 12 }] })
     await nextFrame(page)
   }
   await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
-  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0)
+  expect(await page.evaluate(() => scrollY)).toBe(300)
   await expect(button).toHaveAttribute('data-dragging', 'false')
+
+  // The static, reduced-motion variant uses native horizontal scrolling only.
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  const staticText = page.locator('.news-static')
+  await expect(staticText).toHaveCSS('touch-action', 'pan-x pinch-zoom')
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 260, y }] })
+  for (let step = 1; step <= 8; step++) {
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 260 - step * 20, y: y + step * 6 }] })
+    await nextFrame(page)
+  }
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await expect.poll(() => staticText.evaluate(el => el.scrollLeft)).toBeGreaterThan(50)
+  expect(await page.evaluate(() => scrollY)).toBe(300)
+
+  // A new gesture on the page below the fixed bars still scrolls normally.
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 180, y: 600 }] })
+  for (let step = 1; step <= 8; step++) {
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 180, y: 600 - step * 30 }] })
+    await nextFrame(page)
+  }
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(300)
 })
