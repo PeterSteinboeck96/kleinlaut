@@ -27,10 +27,13 @@
 
 @media (max-width: 63.999rem), (hover: none) and (pointer: coarse) {
   .home-hero {
-    /* Safari shows document content behind its translucent bottom toolbar.
-       Keep a full large viewport of photograph BELOW the header, plus the
-       bottom safe area. Text remains anchored to the stable small viewport. */
-    min-height: calc(var(--hero-cover-height) + var(--safe-bottom));
+    /* Cover the actual screen even if Safari's large viewport omits part of
+       the translucent toolbar area. The extra pixel prevents a rounded seam;
+       text remains anchored independently to the stable small viewport. */
+    min-height: max(
+      calc(var(--hero-cover-height) + var(--safe-bottom)),
+      calc(var(--home-screen-height, 0px) - var(--header-height) + 1px)
+    );
   }
 }
 
