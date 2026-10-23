@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import drinksPdf from '@/assets/pdfs/kleinlaut.pdf'
+import '../styles/pages.css'
 import '../styles/navigation.css'
 
 const EASE = [0.22, 1, 0.36, 1]
 const links = [
-  { label: 'START', to: '/' },
   { label: 'DRINKS', href: drinksPdf },
   { label: 'FOTOS', to: '/fotos' },
   { label: 'RAUMPLAN', to: '/raumplan' },
@@ -34,18 +34,22 @@ function NavLink({ item, ...props }) {
     : <motion.a href={item.href} target="_blank" rel="noreferrer" {...props} />
 }
 
-function RollLink({ item, reduceMotion }) {
-  return (
-    <NavLink item={item} className="nav13-roll font-display" initial="rest" animate="rest" whileHover="hover" whileFocus="hover" aria-label={item.label}>
-      <span className="nav13-roll-window">
-        <motion.span variants={{ rest: { y: '0%' }, hover: { y: reduceMotion ? '0%' : '-100%' } }} transition={{ duration: 0.4, ease: EASE }}>{item.label}</motion.span>
-        {!reduceMotion && <motion.span aria-hidden="true" className="nav13-roll-copy" variants={{ rest: { y: '100%' }, hover: { y: '0%' } }} transition={{ duration: 0.4, ease: EASE }}>{item.label}</motion.span>}
-      </span>
-    </NavLink>
-  )
+function applyMenuTheme() {
+  const root = document.documentElement
+  const wasOpen = root.classList.contains('navigation-open')
+  const theme = document.querySelector('meta[name="theme-color"]')
+  const previousColor = theme?.getAttribute('content')
+  root.classList.add('navigation-open')
+  theme?.setAttribute('content', '#000000')
+  return () => {
+    root.classList.toggle('navigation-open', wasOpen)
+    if (theme && previousColor !== null) theme.setAttribute('content', previousColor)
+  }
 }
 
 export default function Navigation13() {
+  const { pathname } = useLocation()
+  const isMenuPage = pathname === '/menu'
   const [open, setOpen] = useState(false)
   const [keyboardFocus, setKeyboardFocus] = useState(false)
   const dialogRef = useRef(null)
@@ -54,10 +58,13 @@ export default function Navigation13() {
   const destinationRef = useRef(null)
   const previousOverflowRef = useRef(null)
   const inertElementsRef = useRef([])
+  const restoreThemeRef = useRef(null)
   const navigate = useNavigate()
   const reduceMotion = useReducedMotion()
 
   function restorePage() {
+    restoreThemeRef.current?.()
+    restoreThemeRef.current = null
     for (const [element, wasInert] of inertElementsRef.current) element.inert = wasInert
     inertElementsRef.current = []
     if (previousOverflowRef.current === null) return
@@ -79,7 +86,7 @@ export default function Navigation13() {
     if (destination !== null) {
       navigate(destination)
     } else {
-      const target = window.matchMedia('(min-width: 1024px)').matches ? desktopRef.current?.querySelector('a') : triggerRef.current
+      const target = window.matchMedia('(min-width: 1024px)').matches ? desktopRef.current : triggerRef.current
       target?.focus({ preventScroll: true })
     }
   }
@@ -88,6 +95,7 @@ export default function Navigation13() {
     if (!open) return
     const dialog = dialogRef.current
     previousOverflowRef.current = document.body.style.overflow
+    restoreThemeRef.current = applyMenuTheme()
     // A non-modal dialog lets the provider iframe keep its own foreground layer.
     const header = dialog.closest('header')
     const background = [...header.parentElement.children].filter(element => element !== header)
@@ -97,6 +105,10 @@ export default function Navigation13() {
     dialog.show()
     document.body.style.overflow = 'hidden'
   }, [open])
+
+  useEffect(() => {
+    if (isMenuPage) return applyMenuTheme()
+  }, [isMenuPage])
 
   // Keep scrolling locked throughout the exit animation, and restore on unmount.
   useEffect(() => () => restorePage(), [])
@@ -122,22 +134,22 @@ export default function Navigation13() {
   return (
     <header className="top-bar nav13" data-input={keyboardFocus ? 'keyboard' : 'pointer'}>
       <nav className="nav13-bar" aria-label="Hauptnavigation">
-        <button ref={triggerRef} className="nav13-toggle nav13-mobile font-display" type="button" onClick={event => { setKeyboardFocus(event.detail === 0); setOpen(true) }} aria-expanded={open} aria-controls="nav13-menu" aria-label="Menü öffnen">MENU</button>
-        <div ref={desktopRef} className="nav13-desktop">
-          {links.map(item => <RollLink key={item.label} item={item} reduceMotion={reduceMotion} />)}
-        </div>
+        {isMenuPage ? <Link to="/" className="nav13-toggle font-display">START</Link> : <>
+          <button ref={triggerRef} className="nav13-toggle nav13-mobile font-display" type="button" onClick={event => { setKeyboardFocus(event.detail === 0); setOpen(true) }} aria-expanded={open} aria-controls="nav13-menu" aria-label="Menü öffnen">MENU</button>
+          <Link ref={desktopRef} className="nav13-toggle nav13-desktop font-display" to="/menu">MENU</Link>
+        </>}
       </nav>
       <dialog ref={dialogRef} id="nav13-menu" className="nav13-dialog" aria-label="Menü" onKeyDown={event => {
         if (event.key === 'Escape') { event.preventDefault(); closeMenu() }
         else keepFocusInMenu(event)
       }} onCancel={event => { event.preventDefault(); closeMenu() }}>
         <div className="nav13-panel-bar">
-          <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Menü schließen">MENU</button>
+          <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Zur Startseite">START</button>
         </div>
         <div className="nav13-menu-viewport">
           <div className="nav13-panel">
             <AnimatePresence onExitComplete={finishClose}>
-              {open && <motion.nav key="menu-links" className="nav13-menu-links" aria-label="Mobile Seitennavigation" initial="hidden" animate="visible" exit="exit" variants={{
+              {open && <motion.nav key="menu-links" className="nav13-menu-links menu-links font-display" aria-label="Mobile Seitennavigation" initial="hidden" animate="visible" exit="exit" variants={{
                 hidden: {},
                 visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.06 } },
                 exit: { transition: { staggerChildren: reduceMotion ? 0 : 0.03 } },

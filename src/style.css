@@ -29,7 +29,7 @@
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-inline: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
-    --header-bar-height: 4rem;
+    --header-bar-height: 3.25rem;
     --header-height: calc(var(--header-bar-height) + var(--safe-top));
     --page-gutter: max(clamp(1rem, 4vw, 3rem), var(--safe-inline));
     --widget-clearance: 5.5rem;

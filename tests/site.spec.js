@@ -219,7 +219,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
     expect(buttonBox.x).toBeGreaterThanOrEqual(0)
     expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(viewport.width)
     const topBar = await page.locator('header').boundingBox()
-    expect(topBar.height).toBe(44 + 64)
+    expect(topBar.height).toBe(44 + 52)
     if (viewport.height > 480) {
       for (const name of ['Anruf', 'DMs', 'Mail']) {
         const linkBox = await page.getByRole('link', { name, exact: true }).boundingBox()
@@ -373,7 +373,8 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
         await expect(page.getByRole('dialog', { name: 'Menü', exact: true })).toBeVisible()
         return page.getByRole('navigation', { name: 'Mobile Seitennavigation' })
       }
-      return page.getByRole('navigation', { name: 'Hauptnavigation' })
+      await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'MENU', exact: true }).click()
+      return page.getByRole('navigation', { name: 'Seitennavigation', exact: true })
     }
     let nav = await navigation()
     const pdf = nav.getByRole('link', { name: 'DRINKS', exact: true })
@@ -389,7 +390,8 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }
       await expect(page).toHaveURL(path)
     }
     nav = await navigation()
-    await nav.getByRole('link', { name: 'START', exact: true }).click()
+    if (mobile) await page.getByRole('button', { name: 'Zur Startseite' }).click()
+    else await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'START', exact: true }).click()
     await expect(page).toHaveURL('/')
     await expectNoHorizontalOverflow(page)
   })
@@ -402,7 +404,7 @@ test('mobile menu traps focus, closes with Escape, restores scrolling and closes
   const opener = page.getByRole('button', { name: 'Menü öffnen' })
   const dialog = page.getByRole('dialog', { name: 'Menü', exact: true })
   await opener.click()
-  await expect(dialog.getByRole('button', { name: 'Menü schließen' })).toBeFocused()
+  await expect(dialog.getByRole('button', { name: 'Zur Startseite' })).toBeFocused()
   for (let i = 0; i < 12; i++) {
     await page.keyboard.press('Tab')
     expect(await dialog.evaluate(el => el.contains(document.activeElement))).toBeTruthy()
@@ -419,7 +421,7 @@ test('mobile menu traps focus, closes with Escape, restores scrolling and closes
   await opener.click()
   await dialog.getByRole('link', { name: 'IMPRESSUM', exact: true }).scrollIntoViewIfNeeded()
   await expect(dialog.getByRole('link', { name: 'IMPRESSUM', exact: true })).toBeInViewport()
-  await dialog.getByRole('button', { name: 'Menü schließen' }).click()
+  await dialog.getByRole('button', { name: 'Zur Startseite' }).click()
   await expect(dialog).not.toBeVisible()
 })
 
@@ -437,31 +439,27 @@ for (const width of [390, 1440]) {
       expect(box.x).toBe(0)
       expect(box.width).toBe(width)
       await toggle.click({ position: { x: 2, y: box.height / 2 } })
-      const close = page.getByRole('button', { name: 'Menü schließen' })
-      await expect(close).toHaveText('MENU')
+      const close = page.getByRole('button', { name: 'Zur Startseite' })
+      await expect(close).toHaveText('START')
       await expect(close).toHaveCSS('outline-style', 'none')
       await expect(close).toHaveCSS('text-decoration-line', 'none')
       await expect(page.locator('.nav13-footer')).toHaveCount(0)
       await page.keyboard.press('Tab')
-      await expect(page.getByRole('dialog').getByRole('link', { name: 'START', exact: true })).toHaveCSS('text-decoration-line', 'underline')
+      await expect(page.getByRole('dialog').getByRole('link', { name: 'DRINKS', exact: true })).toHaveCSS('text-decoration-line', 'underline')
       const closeBox = await close.boundingBox()
       expect(closeBox.x).toBe(0)
       expect(closeBox.width).toBe(width)
       await close.click({ position: { x: width - 2, y: closeBox.height / 2 } })
       await expect(page.getByRole('dialog')).not.toBeVisible()
     } else {
-      const links = nav.getByRole('link')
-      await expect(links).toHaveCount(5)
-      await expect(nav.getByRole('button')).toHaveCount(0)
-      const boxes = await links.evaluateAll(elements => elements.map(el => {
-        const rect = el.getBoundingClientRect()
-        return { left: rect.left, right: rect.right, weight: getComputedStyle(el).fontWeight }
-      }))
-      expect(Math.abs((boxes[0].left + boxes[4].right) / 2 - width / 2)).toBeLessThanOrEqual(1)
-      for (let i = 0; i < boxes.length; i++) {
-        expect(boxes[i].weight).toBe('800')
-        if (i) expect(boxes[i].left - boxes[i - 1].right).toBeGreaterThanOrEqual(32)
-      }
+      const menu = nav.getByRole('link', { name: 'MENU', exact: true })
+      await expect(nav.getByRole('link')).toHaveCount(1)
+      await expectCentered(menu, page)
+      await expect(menu).toHaveCSS('font-weight', '800')
+      await menu.click()
+      await expect(page).toHaveURL('/menu')
+      await expect(page.getByRole('navigation', { name: 'Seitennavigation', exact: true }).getByRole('link')).toHaveCount(4)
+      await expect(page.getByRole('link', { name: 'START', exact: true })).toBeVisible()
     }
   })
 }
@@ -478,8 +476,8 @@ for (const start of ['/fotos', '/raumplan', '/impressum']) {
     await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(panelTop, 0)
     expect(await dialog.evaluate(el => getComputedStyle(el, '::backdrop').backgroundColor)).toBe('rgba(0, 0, 0, 0)')
     await expect(dialog.getByRole('link', { name: 'IMPRESSUM', exact: true })).toHaveCSS('opacity', '1')
-    const firstLink = dialog.getByRole('link', { name: 'START', exact: true })
-    await dialog.getByRole('button', { name: 'Menü schließen' }).click()
+    const firstLink = dialog.getByRole('link', { name: 'DRINKS', exact: true })
+    await dialog.getByRole('button', { name: 'Zur Startseite' }).click()
     await expect.poll(() => firstLink.evaluate(el => Number(getComputedStyle(el).opacity))).toBeLessThan(0.99)
     await expect(panel).toHaveCSS('transform', 'none')
     await expect(panel).toHaveCSS('background-color', 'rgb(0, 0, 0)')
@@ -502,7 +500,7 @@ test('mobile page links wait for the closing animation before navigating', async
   const panelTop = await page.locator('.nav13-panel-bar').evaluate(el => el.getBoundingClientRect().bottom)
   await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(panelTop, 0)
   await expect(page.getByRole('dialog').getByRole('link', { name: 'IMPRESSUM', exact: true })).toHaveCSS('opacity', '1')
-  const firstLink = page.getByRole('dialog').getByRole('link', { name: 'START', exact: true })
+  const firstLink = page.getByRole('dialog').getByRole('link', { name: 'DRINKS', exact: true })
   await page.getByRole('dialog').getByRole('link', { name: 'FOTOS', exact: true }).click()
   await expect.poll(() => firstLink.evaluate(el => Number(getComputedStyle(el).opacity))).toBeLessThan(0.99)
   await expect(panel).toHaveCSS('transform', 'none')
@@ -538,7 +536,42 @@ test('reservation widget remains clickable and keyboard reachable above the menu
   await page.getByRole('dialog').getByRole('link', { name: 'IMPRESSUM', exact: true }).focus()
   await page.keyboard.press('Tab')
   expect(await frame.evaluate(el => document.activeElement === el)).toBeTruthy()
-  await page.getByRole('button', { name: 'Menü schließen' }).click()
+  await page.getByRole('button', { name: 'Zur Startseite' }).click()
   await expect(page.getByRole('dialog')).not.toBeVisible()
   expect(await page.locator('.home-hero').evaluate(el => el.inert)).toBe(false)
 })
+
+
+for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
+  test(`original mobile menu stays centered with black coverage behind browser chrome at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+    await page.evaluate(height => {
+      document.documentElement.style.setProperty('--safe-top', '59px')
+      document.documentElement.style.setProperty('--safe-bottom', '34px')
+      document.documentElement.style.setProperty('--viewport-height', `${height}px`)
+    }, viewport.height - 100)
+    await page.getByRole('button', { name: 'Menü öffnen' }).click()
+    const dialog = page.getByRole('dialog')
+    const header = page.locator('.nav13-panel-bar')
+    await expect(header).toHaveCSS('background-color', 'rgb(0, 0, 0)')
+    await expect(header).toHaveCSS('color', 'rgb(255, 255, 0)')
+    await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(0, 0, 0)')
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#000000')
+    const backing = await dialog.boundingBox()
+    expect(backing.y + backing.height).toBeGreaterThanOrEqual(viewport.height + 34)
+    const links = dialog.getByRole('navigation', { name: 'Mobile Seitennavigation' })
+    await expect(links.getByRole('link')).toHaveCount(4)
+    await expect(dialog.getByRole('link', { name: 'START', exact: true })).toHaveCount(0)
+    await expectCentered(links, page)
+    await expect(links).toHaveCSS('font-weight', '800')
+    const textBox = await links.boundingBox()
+    const headerBox = await header.boundingBox()
+    const reservationTop = viewport.height - 100 - 34 - 68
+    expect(Math.abs(textBox.y + textBox.height / 2 - (headerBox.y + headerBox.height + reservationTop) / 2)).toBeLessThanOrEqual(2)
+    await page.keyboard.press('Escape')
+    await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(255, 255, 0)')
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#ffff00')
+  })
+}

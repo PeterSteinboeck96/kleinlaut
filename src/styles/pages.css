@@ -1,5 +1,6 @@
 .menu-page {
-  background: radial-gradient(circle at top, rgb(255 255 255 / 5%), #000 65%);
+  background: #000;
+  border-top-color: #000;
 }
 
 .menu-page .page-panel {

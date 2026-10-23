@@ -6,7 +6,7 @@ import '../styles/pages.css'
 export default function MenuPage() {
   return (
     <section className="site-page menu-page">
-      <TopBar label="ZURÜCK" />
+      <TopBar />
       <div className="page-panel">
         <nav className="menu-links font-display" aria-label="Seitennavigation">
           <a href={drinksPdf} target="_blank" rel="noreferrer">
