@@ -12,12 +12,54 @@
 }
 
 @layer base {
+  :root {
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-7: 1.75rem;
+    --space-8: 2rem;
+    --space-9: 2.25rem;
+    --space-10: 2.5rem;
+    --space-11: 2.75rem;
+    --space-12: 3rem;
+    --viewport-height: 100vh;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-inline: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+    --header-height: calc(3rem + var(--safe-top));
+    --page-gutter: max(clamp(1rem, 4vw, 3rem), var(--safe-inline));
+    --widget-clearance: 5.5rem;
+  }
+
+  @supports (height: 100dvh) {
+    :root {
+      --viewport-height: 100dvh;
+    }
+  }
+
   html {
-    @apply overflow-hidden;
+    scroll-padding-top: calc(var(--header-height) + var(--space-4));
+    scroll-padding-bottom: calc(var(--widget-clearance) + var(--safe-bottom));
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-black text-white font-body font-medium overflow-hidden;
+    @apply bg-black text-white font-body font-medium;
+    min-width: 0;
+    margin: 0;
+  }
+
+  a {
+    -webkit-tap-highlight-color: rgb(255 255 0 / 20%);
+  }
+
+  a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
   }
 
   .font-display {
@@ -29,10 +71,57 @@
   }
 }
 
-body.allow-scroll {
-  overflow: auto;
+@layer components {
+  .site-page {
+    min-height: var(--viewport-height);
+    padding-top: var(--header-height);
+    background: #000;
+  }
+
+  .page-panel {
+    display: grid;
+    place-items: center;
+    min-height: calc(var(--viewport-height) - var(--header-height));
+    padding: var(--space-6) var(--page-gutter) calc(var(--space-6) + var(--safe-bottom) + var(--widget-clearance));
+  }
+
+  .top-bar {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 50;
+    padding-top: var(--safe-top);
+    background: #ff0;
+  }
+
+  .top-bar__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    padding-inline: var(--page-gutter);
+    color: #000;
+    text-align: center;
+  }
+
+  .top-bar__link:focus-visible {
+    outline-offset: -4px;
+  }
 }
 
-html.allow-scroll {
-  overflow: auto;
+/* The provider positions this frame inline; keep its button and dialog in the safe area. */
+iframe.molzait {
+  bottom: var(--safe-bottom) !important;
+  right: env(safe-area-inset-right, 0px) !important;
+  max-width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) !important;
+  max-height: calc(var(--viewport-height) - var(--safe-top) - var(--safe-bottom)) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }

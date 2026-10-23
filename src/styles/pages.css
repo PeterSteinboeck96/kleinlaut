@@ -1,0 +1,104 @@
+.menu-page {
+  background: radial-gradient(circle at top, rgb(255 255 255 / 5%), #000 65%);
+}
+
+.menu-links {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  max-width: 100%;
+  text-align: center;
+  font-size: clamp(2rem, 8vw, 3rem);
+  line-height: 1.15;
+  color: #ff0;
+}
+
+.menu-links a {
+  display: grid;
+  min-width: 0;
+  min-height: 44px;
+  place-items: center;
+  padding: var(--space-1) 0;
+  overflow-wrap: anywhere;
+  transition: color 160ms ease;
+}
+
+.menu-links a:hover {
+  color: #fff;
+}
+
+.imprint-details {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 100%;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #a3a3a3;
+  overflow-wrap: anywhere;
+}
+
+.imprint-company {
+  margin-bottom: var(--space-1);
+  color: #ff0;
+  font-size: 1.125rem;
+}
+
+.imprint-details a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.floorplan-image {
+  /* Keep the plan readable on short screens; the page can scroll if needed. */
+  width: min(100%, clamp(18rem, calc((var(--viewport-height) - var(--header-height) - 2 * var(--space-6) - var(--safe-bottom) - var(--widget-clearance)) * 3490 / 5478), 32rem));
+  height: auto;
+}
+
+.gallery-content {
+  padding-bottom: calc(var(--widget-clearance) + var(--safe-bottom));
+}
+
+.gallery-grid {
+  gap: var(--space-1);
+}
+
+.gallery-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: #151515;
+}
+
+.gallery-caption {
+  position: fixed;
+  z-index: 40;
+  inset: var(--header-height) 0 calc(var(--widget-clearance) + var(--safe-bottom));
+  display: grid;
+  place-items: center;
+  padding-inline: var(--page-gutter);
+  pointer-events: none;
+  text-align: center;
+  color: #ff0;
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.4;
+  text-shadow: 0 1px 8px #000, 0 1px 2px #000;
+}
+
+@media (min-width: 640px) {
+  .gallery-caption {
+    display: none;
+  }
+}
+
+@media (max-height: 480px) {
+  .menu-links {
+    gap: var(--space-2);
+    font-size: clamp(1.75rem, 6vw, 2.5rem);
+  }
+}

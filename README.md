@@ -24,14 +24,40 @@ The production build is written to `dist/`. The existing Vercel rewrite serves
 ## Browser tests
 
 ```sh
-npx playwright install chromium
+npx playwright install chromium webkit
 npm test
 ```
 
-Tests build the production site and check desktop and mobile navigation, direct
-routes, the `/drinks` redirect, gallery ordering, scrolling, assets, and contact
-links. Third-party requests are stubbed so tests do not depend on Google Maps,
-Google Fonts, or the reservation service being available.
+Tests build the production site and run in Chromium and touch-enabled WebKit.
+They cover navigation, direct routes, the `/drinks` redirect, gallery ordering,
+scrolling, assets, contact links, reduced motion, and viewport resizing. The
+responsive matrix spans 320–1920px widths and short landscape screens.
+Third-party requests are stubbed so tests do not depend on Google Maps, Google
+Fonts, or the reservation service being available. Native Instagram/TikTok
+webviews still need device checks; browser emulation cannot reproduce every
+app's toolbar and navigation behavior.
+
+## Layout conventions
+
+- `src/style.css` defines a 4px spacing scale, fluid page gutters, the shared
+  header height, and safe-area insets. `100dvh` adapts to mobile browser chrome,
+  with a `100vh` fallback for older browsers.
+- `.site-page` reserves the fixed header; `.page-panel` centers secondary-page
+  content while leaving space for the floating reservation button.
+- `src/styles/home.css` and `src/styles/pages.css` contain page-specific layouts.
+  Use minimum heights and natural scrolling so short screens and larger text
+  do not clip content.
+- Alegreya Sans Medium is the body font; opening hours use Bold. Navigation
+  retains Proxima Nova. Entrance animations respect reduced-motion preferences.
+
+## Development skills
+
+The requested `senior-frontend`, `senior-architect`, and `senior-backend` skills
+are installed under `.claude/skills/` using:
+
+```sh
+npx claude-code-templates@latest --skill development/senior-frontend,development/senior-architect,development/senior-backend
+```
 
 ## Site structure
 

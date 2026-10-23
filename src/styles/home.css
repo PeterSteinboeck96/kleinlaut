@@ -1,0 +1,93 @@
+.home-page {
+  background: #000;
+}
+
+.home-hero {
+  position: relative;
+  isolation: isolate;
+}
+
+.home-hero-background,
+.home-hero-background img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.home-hero-background {
+  z-index: -1;
+}
+
+.home-hero-background img {
+  object-fit: cover;
+  object-position: center;
+}
+
+.home-hero-content {
+  display: grid;
+  grid-template-rows: 1fr auto 1fr;
+  min-height: max(30rem, calc(var(--viewport-height) - var(--header-height)));
+  padding-inline: var(--page-gutter);
+  text-align: center;
+}
+
+.home-brand {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.home-logo {
+  width: clamp(12rem, 40vw, 18rem);
+  max-width: 100%;
+  height: auto;
+}
+
+.home-hours,
+.home-contact {
+  font-size: clamp(1rem, 0.9rem + 0.25vw, 1.125rem);
+  line-height: 1.4;
+}
+
+.home-hours {
+  margin: 0;
+  font-weight: 700;
+}
+
+.home-contact {
+  grid-row: 3;
+  align-self: end;
+  justify-self: center;
+  width: min(100%, 30rem);
+  margin: 0;
+  padding-block: var(--space-8) calc(var(--widget-clearance) + var(--safe-bottom));
+  text-wrap: balance;
+}
+
+.home-map-mobile,
+.home-map-mobile img {
+  display: block;
+  width: 100%;
+}
+
+.home-map-mobile img {
+  height: auto;
+}
+
+.home-map-desktop {
+  display: none;
+  height: clamp(20rem, 32vw, 32rem);
+}
+
+@media (min-width: 40rem) {
+  .home-map-mobile {
+    display: none;
+  }
+
+  .home-map-desktop {
+    display: block;
+  }
+}

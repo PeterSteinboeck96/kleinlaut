@@ -1,14 +1,13 @@
 import TopBar from '../components/TopBar.jsx'
 import raumplanImage from '@/assets/images/raumplan.webp'
+import '../styles/pages.css'
 
 export default function RaumplanPage() {
   return (
-    <section className="h-[100vh] overflow-hidden bg-black">
+    <section className="site-page floorplan-page">
       <TopBar />
-      <div className="flex h-full flex-col items-center pt-12">
-        <div className="w-full max-w-[320px] md:max-w-md">
-          <img className="h-auto w-full" src={raumplanImage} alt="Raumplan" />
-        </div>
+      <div className="page-panel">
+        <img className="floorplan-image" src={raumplanImage} alt="Raumplan" width="3490" height="5478" decoding="async" />
       </div>
     </section>
   )
