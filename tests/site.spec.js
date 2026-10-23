@@ -459,3 +459,39 @@ for (const width of [390, 1440]) {
     }
   })
 }
+
+for (const start of ['/fotos', '/raumplan', '/impressum']) {
+  test(`back slides the menu closed before returning home from ${start}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.goto(start)
+    await page.getByRole('button', { name: 'Menü öffnen' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Menü', exact: true })
+    const panel = dialog.locator('.nav13-panel')
+    await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(0, 0)
+    expect(await dialog.evaluate(el => getComputedStyle(el, '::backdrop').backgroundColor)).toBe('rgba(0, 0, 0, 0)')
+    await dialog.getByRole('button', { name: 'Menü schließen' }).click()
+    await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeLessThan(-1)
+    await expect(dialog).toBeVisible()
+    await expect(page).toHaveURL(start)
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden')
+    await expect(page).toHaveURL('/')
+    await expect(dialog).not.toBeVisible()
+    expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden')
+    expect(await page.evaluate(() => window.scrollY)).toBe(0)
+  })
+}
+
+test('mobile page links wait for the closing animation before navigating', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Menü öffnen' }).click()
+  const panel = page.locator('.nav13-panel')
+  await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(0, 0)
+  await page.getByRole('dialog').getByRole('link', { name: 'FOTOS', exact: true }).click()
+  await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeLessThan(-1)
+  await expect(page).toHaveURL('/')
+  await expect(page).toHaveURL('/fotos')
+  await expect(page.getByRole('dialog')).not.toBeVisible()
+})

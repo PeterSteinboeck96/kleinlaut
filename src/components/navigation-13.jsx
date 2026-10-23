@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { ArrowUpRight } from 'lucide-react'
 import drinksPdf from '@/assets/pdfs/kleinlaut.pdf'
@@ -47,16 +47,46 @@ export default function Navigation13() {
   const dialogRef = useRef(null)
   const triggerRef = useRef(null)
   const desktopRef = useRef(null)
+  const destinationRef = useRef(null)
+  const previousOverflowRef = useRef(null)
+  const navigate = useNavigate()
   const reduceMotion = useReducedMotion()
+
+  function restoreScrolling() {
+    if (previousOverflowRef.current === null) return
+    document.body.style.overflow = previousOverflowRef.current
+    previousOverflowRef.current = null
+  }
+
+  function closeMenu(destination = null) {
+    if (!open) return
+    destinationRef.current = destination
+    setOpen(false)
+  }
+
+  function finishClose() {
+    dialogRef.current?.close()
+    restoreScrolling()
+    const destination = destinationRef.current
+    destinationRef.current = null
+    if (destination !== null) {
+      navigate(destination)
+    } else {
+      const target = window.matchMedia('(min-width: 1024px)').matches ? desktopRef.current?.querySelector('a') : triggerRef.current
+      target?.focus({ preventScroll: true })
+    }
+  }
 
   useEffect(() => {
     if (!open) return
     const dialog = dialogRef.current
-    const previousOverflow = document.body.style.overflow
+    previousOverflowRef.current = document.body.style.overflow
     dialog.showModal()
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = previousOverflow }
   }, [open])
+
+  // Keep scrolling locked throughout the exit animation, and restore on unmount.
+  useEffect(() => () => restoreScrolling(), [])
 
   useEffect(() => {
     const query = window.matchMedia('(min-width: 1024px)')
@@ -73,18 +103,19 @@ export default function Navigation13() {
           {links.map(item => <RollLink key={item.label} item={item} reduceMotion={reduceMotion} />)}
         </div>
       </nav>
-      <dialog ref={dialogRef} id="nav13-menu" className="nav13-dialog" aria-label="Menü" onKeyDown={keepFocusInMenu} onCancel={event => { event.preventDefault(); setOpen(false) }}>
-        <AnimatePresence onExitComplete={() => {
-          dialogRef.current?.close()
-          const target = window.matchMedia('(min-width: 1024px)').matches ? desktopRef.current?.querySelector('a') : triggerRef.current
-          target?.focus({ preventScroll: true })
-        }}>
+      <dialog ref={dialogRef} id="nav13-menu" className="nav13-dialog" aria-label="Menü" onKeyDown={keepFocusInMenu} onCancel={event => { event.preventDefault(); closeMenu() }}>
+        <AnimatePresence onExitComplete={finishClose}>
           {open && <motion.div key="menu" className="nav13-panel" initial={reduceMotion ? false : { y: '-100%' }} animate={{ y: 0 }} exit={{ y: reduceMotion ? 0 : '-100%' }} transition={{ duration: reduceMotion ? 0 : 0.6, ease: EASE }}>
             <div className="nav13-panel-bar">
-              <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => setOpen(false)} aria-label="Menü schließen">ZURÜCK</button>
+              <button autoFocus className="nav13-toggle font-display" type="button" onClick={() => closeMenu('/')} aria-label="Menü schließen">ZURÜCK</button>
             </div>
             <motion.nav className="nav13-menu-links" aria-label="Mobile Seitennavigation" initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.06, delayChildren: reduceMotion ? 0 : 0.2 } } }}>
-              {links.map((item, index) => <NavLink key={item.label} item={item} onClick={() => setOpen(false)} className="nav13-menu-link" variants={{ hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 26 }, visible: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.5, ease: EASE } } }}>
+              {links.map((item, index) => <NavLink key={item.label} item={item} onClick={event => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
+                // Changing routes earlier would unmount the menu before it can slide out.
+                if (item.to) event.preventDefault()
+                closeMenu(item.to ?? null)
+              }} className="nav13-menu-link" variants={{ hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 26 }, visible: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.5, ease: EASE } } }}>
                 <span className="nav13-number" aria-hidden="true">0{index + 1}</span><span className="font-display">{item.label}</span><ArrowUpRight size={20} aria-hidden="true" />
               </NavLink>)}
             </motion.nav>
