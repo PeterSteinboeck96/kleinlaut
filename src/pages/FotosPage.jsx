@@ -42,11 +42,6 @@ export default function FotosPage() {
       {copy.galleryCaption && <div className="gallery-caption">
         <span>{copy.galleryCaption.map(line => <span className="block" key={line}>{line}</span>)}</span>
       </div>}
-      <div className="gallery-scroll-hint" aria-hidden="true">
-        <svg viewBox="0 0 44 44" fill="currentColor" focusable="false">
-          <path d="M14 2h16v12.29h8L22 42 6 14.29h8Z" />
-        </svg>
-      </div>
       <div className="gallery-content" ref={galleryRef}>
         <div className="gallery-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {photos.map(({ src, number }, index) => (
