@@ -1,6 +1,7 @@
 .home-page {
   background: #000;
   --home-content-height: var(--stable-viewport-height);
+  --home-gap: clamp(0.25rem, calc((var(--home-content-height) - 20rem) * 0.15), var(--space-4));
 }
 
 .home-hero {
@@ -17,12 +18,9 @@
 
 @media (max-width: 63.999rem), (hover: none) and (pointer: coarse) {
   .home-hero {
-    /* Keep the photo crop independent of Safari's changing toolbar geometry.
-       The physical screen minimum also covers translucent browser controls. */
-    min-height: max(
-      calc(var(--stable-viewport-height) - var(--header-height) + var(--stable-safe-bottom)),
-      calc(var(--mobile-screen-height, 0px) - var(--header-height) + 1px)
-    );
+    /* Fill the page's large viewport, including its translucent address bar.
+       Hardware screen height would count native UI above the page twice. */
+    min-height: calc(var(--stable-large-viewport-height) - var(--header-height));
   }
 }
 
@@ -57,12 +55,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
-  padding-block: clamp(var(--space-4), calc(var(--home-content-height) * 0.04), var(--space-8));
+  gap: var(--home-gap);
+  padding-block: clamp(0.25rem, calc((var(--home-content-height) - 20rem) * 0.15), var(--space-8));
 }
 
 .home-logo {
   width: clamp(12rem, 40vw, 18rem);
+  width: min(clamp(12rem, 40vw, 18rem), max(8rem, calc(var(--home-content-height) - 12rem)));
   max-width: 100%;
   height: auto;
 }
@@ -84,7 +83,7 @@
   justify-self: center;
   width: min(100%, 42rem);
   margin: 0;
-  padding-bottom: calc(var(--widget-clearance) + var(--stable-safe-bottom) + var(--space-4));
+  padding-bottom: calc(var(--widget-clearance) + var(--stable-safe-bottom) + var(--home-gap));
   text-wrap: pretty;
 }
 

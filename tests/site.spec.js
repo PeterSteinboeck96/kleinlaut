@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { modelLargeViewport } from './helpers/mobile-display.js'
 
 test.use({ locale: 'de-AT' })
 
@@ -13,6 +14,25 @@ const viewports = [
   { width: 667, height: 320 },
   { width: 844, height: 390 },
 ]
+
+async function modelInitialChrome(page, viewport) {
+  await page.addInitScript(({ width, height }) => {
+    Object.defineProperty(screen, 'width', { get: () => width })
+    Object.defineProperty(screen, 'height', { get: () => height })
+    Object.defineProperty(visualViewport, 'height', { get: () => height - 100 })
+    const apply = () => {
+      if (!document.documentElement) return false
+      for (const [name, value] of Object.entries({
+        '--safe-top': '59px', '--safe-bottom': '34px', '--stable-safe-bottom': '34px',
+        '--viewport-height': `${height - 100}px`, '--stable-viewport-height': `${height - 100}px`,
+      })) document.documentElement.style.setProperty(name, value)
+      return true
+    }
+    if (apply()) return
+    const observer = new MutationObserver(() => { if (apply()) observer.disconnect() })
+    observer.observe(document, { childList: true, subtree: true })
+  }, viewport)
+}
 
 async function expectNoHorizontalOverflow(page) {
   const excess = await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - document.documentElement.clientWidth)
@@ -347,18 +367,25 @@ for (const width of [320, 390, 1024, 1440]) {
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
   test(`mobile hero covers browser chrome and reveals map only after scrolling at ${viewport.width}px`, async ({ page }) => {
-    await page.setViewportSize(viewport)
+    await page.setViewportSize({ width: viewport.width, height: viewport.height - 100 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
+    await modelInitialChrome(page, viewport)
+    await modelLargeViewport(page, viewport.height)
     await page.goto('/')
-    // Model the stable small viewport separately from the changing toolbar height.
-    await page.locator('.home-page').evaluate((el, height) => el.style.setProperty('--home-content-height', `${height}px`), viewport.height - 100)
+    await page.locator('.home-page').evaluate((element, height) => {
+      // Desktop engines at a narrow width do not run the touch-only hook.
+      // Model its frozen values for this CSS test; mobile tests use the real hook.
+      if (matchMedia('(hover: none) and (pointer: coarse)').matches) return
+      element.style.setProperty('--home-content-height', `${height}px`)
+      element.style.setProperty('--stable-safe-bottom', '34px')
+    }, viewport.height - 100)
+    await page.evaluate(() => { window.dispatchEvent(new Event('touchstart')); return document.fonts.ready })
+    const initialContact = await page.locator('.home-contact').boundingBox()
     for (const toolbarHeight of [100, 0, 72]) {
-      // Headless browsers have no native toolbar: model a smaller dynamic viewport
-      // while retaining the large viewport used for the background cover.
+      // Keep the initial content and launcher anchors while browser controls move.
+      await page.setViewportSize({ width: viewport.width, height: viewport.height - toolbarHeight })
       await page.evaluate((height) => {
         document.documentElement.style.setProperty('--viewport-height', `${height}px`)
-        document.documentElement.style.setProperty('--safe-top', '59px')
-        document.documentElement.style.setProperty('--safe-bottom', '34px')
         window.dispatchEvent(new Event('resize'))
         window.scrollTo(0, 0)
       }, viewport.height - toolbarHeight)
@@ -372,8 +399,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
       expect(imageBox.height).toBeGreaterThanOrEqual(viewport.height - headerBox.height - 1)
       expect(imageBox.y + imageBox.height).toBeCloseTo(mapBox.y, 0)
       const contactBottom = await page.getByRole('link', { name: 'E-Mail', exact: true }).evaluate(el => el.getBoundingClientRect().bottom)
-      const reservationFrameTop = viewport.height - toolbarHeight - 34 - 70
+      const reservationFrameTop = viewport.height - 100 - 34 - 70
       expect(reservationFrameTop - contactBottom).toBeGreaterThanOrEqual(32)
+      expect(await page.locator('.home-contact').boundingBox()).toEqual(initialContact)
       await page.evaluate(() => window.scrollBy(0, 300))
       await expect(map).toBeInViewport()
     }
@@ -793,12 +821,10 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
   test(`original mobile menu stays centered with black coverage behind browser chrome at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport)
     await page.emulateMedia({ reducedMotion: 'reduce' })
+    // Native safe areas and the initial visible height are available before mount.
+    // Changing them after loading would correctly leave the mobile anchor frozen.
+    await modelInitialChrome(page, viewport)
     await page.goto('/')
-    await page.evaluate(height => {
-      document.documentElement.style.setProperty('--safe-top', '59px')
-      document.documentElement.style.setProperty('--safe-bottom', '34px')
-      document.documentElement.style.setProperty('--viewport-height', `${height}px`)
-    }, viewport.height - 100)
     await page.getByRole('button', { name: 'Menü öffnen' }).click()
     const dialog = page.getByRole('dialog')
     const header = page.locator('.nav13-panel-bar')

@@ -87,10 +87,18 @@ html.fixed-page-open,
   touch-action: pinch-zoom;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .fixed-page .page-panel {
+    /* The launcher stays at its initial anchor when the address bar retracts. */
+    height: min(100%, max(0px, calc(var(--stable-viewport-height) - var(--header-height))));
+    padding-bottom: calc(var(--space-6) + var(--stable-safe-bottom) + var(--widget-clearance));
+  }
+}
+
 /* Short landscape views need fewer rows, rather than a clipped legal notice. */
 @container imprint (max-height: 20rem) {
   .imprint-page .page-panel {
-    padding-block: 8px calc(8px + var(--safe-bottom) + var(--reservation-button-space));
+    padding-block: 8px calc(8px + var(--stable-safe-bottom) + var(--reservation-button-space));
   }
 
   .imprint-details {

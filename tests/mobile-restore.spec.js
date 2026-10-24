@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { modelLargeViewport } from './helpers/mobile-display.js'
 
 test.use({ hasTouch: true, isMobile: true, locale: 'de-AT' })
 
@@ -6,6 +7,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://**/*', route => route.fulfill({ body: '', contentType: 'text/plain' }))
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.setViewportSize({ width: 430, height: 782 })
+  await modelLargeViewport(page, 873)
   await page.addInitScript(() => {
     window.testBrowser = { height: 782, hidden: false, scale: 1, width: 430, screenHeight: 932 }
     Object.defineProperty(screen, 'width', { get: () => window.testBrowser.width })
@@ -63,7 +65,7 @@ test('home photo, text and launcher share stable geometry as Safari controls cha
     await expect.poll(() => geometry(page)).toEqual(initial)
   }
   const map = await page.locator('.home-map').boundingBox()
-  expect(map.y).toBeGreaterThanOrEqual(932)
+  expect(map.y).toBe(873)
   expect(initial.photo.top + initial.photo.height).toBe(map.y)
   expect(initial.widget.top + initial.widget.height).toBeLessThanOrEqual(782 - 34)
 })
@@ -71,14 +73,90 @@ test('home photo, text and launcher share stable geometry as Safari controls cha
 test('a cold Safari restore with oversized CSS viewport uses the visible area', async ({ page }) => {
   // CSS vh/svh/lvh are too large, while the visible viewport is still 782px.
   await page.setViewportSize({ width: 430, height: 1050 })
+  await page.addInitScript(() => { window.testCoverHeight = 1141 })
   await page.goto('/')
   const frame = await launcher(page)
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-viewport-height'))).toBe('782px')
   await expect.poll(async () => (await frame.boundingBox()).y).toBe(678)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
   expect((await page.locator('.home-hero-content').boundingBox()).y +
     (await page.locator('.home-hero-content').boundingBox()).height).toBe(782)
   await page.evaluate(() => { window.testBrowser.height = 752; window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })) })
-  await expect.poll(async () => (await frame.boundingBox()).y).toBe(648)
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(678)
+})
+
+test('pull-to-refresh and its rebound cannot replace the initial anchors', async ({ page }) => {
+  await page.goto('/')
+  await launcher(page)
+  await page.evaluate(() => document.fonts.ready)
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  const initial = await geometry(page)
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('touchstart'))
+    window.testBrowser.offset = 180
+    Object.defineProperty(visualViewport, 'offsetTop', { get: () => window.testBrowser.offset })
+    window.testBrowser.height = 620
+    visualViewport.dispatchEvent(new Event('resize'))
+  })
+  expect(await geometry(page)).toEqual(initial)
+  // Safari can publish more short heights after the finger has been released.
+  for (const height of [620, 700, 782, 850, 782]) {
+    await page.evaluate(height => {
+      window.testBrowser.offset = 0
+      window.testBrowser.height = height
+      visualViewport.dispatchEvent(new Event('resize'))
+      window.dispatchEvent(new Event('resize'))
+    }, height)
+    expect(await geometry(page)).toEqual(initial)
+  }
+  await page.waitForTimeout(700)
+  expect(await geometry(page)).toEqual(initial)
+  expect(initial.widget.top + initial.widget.height).toBeLessThanOrEqual(782 - 34)
+})
+
+test('height-only changes after startup are ignored even without a touch event', async ({ page }) => {
+  await page.goto('/')
+  await launcher(page)
+  await page.waitForTimeout(700)
+  const initial = await geometry(page)
+  await page.evaluate(() => {
+    window.testBrowser.height = 700
+    visualViewport.dispatchEvent(new Event('resize'))
+  })
+  expect(await geometry(page)).toEqual(initial)
+})
+
+test('a loading reservation frame cannot delay the initial viewport measurement', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (window !== window.top) return
+    const observer = new MutationObserver(() => {
+      if (!document.body) return
+      observer.disconnect()
+      const frame = document.createElement('iframe')
+      frame.className = 'molzait'
+      frame.srcdoc = '<button>Reserve</button>'
+      frame.style.cssText = 'position:fixed;right:0;bottom:0;width:225px;height:0px;border:0'
+      document.body.append(frame)
+    })
+    observer.observe(document, { childList: true, subtree: true })
+  })
+  await page.goto('/')
+  const frame = page.locator('iframe.molzait')
+  await expect(frame).not.toHaveAttribute('data-stable-launcher')
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-viewport-height'))).toBe('782px')
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('touchstart'))
+    window.testBrowser.height = 620
+    visualViewport.dispatchEvent(new Event('resize'))
+    document.querySelector('iframe.molzait').style.height = '70px'
+  })
+  await expect(frame).toHaveAttribute('data-stable-launcher', '')
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(678)
+  await page.evaluate(() => {
+    window.testBrowser.height = 782
+    visualViewport.dispatchEvent(new Event('resize'))
+  })
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(678)
 })
 
 test('tab restoration corrects a phantom scroll only when home was left at the top', async ({ page }) => {
@@ -164,6 +242,7 @@ test('keyboard and pinch zoom cannot poison the saved mobile geometry', async ({
 })
 
 test('short phones keep contact text above the launcher without a minimum-height overflow', async ({ page }) => {
+  await page.addInitScript(() => { window.testCoverHeight = 548 })
   await page.addInitScript(() => Object.assign(window.testBrowser, { width: 320, screenHeight: 568, height: 418 }))
   await page.setViewportSize({ width: 320, height: 418 })
   await page.goto('/')
@@ -176,5 +255,5 @@ test('short phones keep contact text above the launcher without a minimum-height
     return range.getBoundingClientRect().bottom
   })
   expect((await frame.boundingBox()).y - textBottom).toBeGreaterThanOrEqual(24)
-  expect((await page.locator('.home-map').boundingBox()).y).toBeGreaterThanOrEqual(568)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(548)
 })

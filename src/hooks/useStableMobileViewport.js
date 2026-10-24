@@ -10,10 +10,19 @@ export default function useStableMobileViewport() {
     const probe = document.createElement('div')
     probe.ariaHidden = 'true'
     probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100vh;height:100svh;padding-bottom:var(--safe-bottom);box-sizing:content-box;visibility:hidden;pointer-events:none'
-    document.body.append(probe)
+    const largeProbe = probe.cloneNode()
+    largeProbe.style.height = 'var(--large-viewport-height)'
+    document.body.append(probe, largeProbe)
     let suspendedAtHomeTop = false
     let suspended = false
     let restoreHomeTop = false
+    let initialized = false
+
+    function applySize({ height, bottom, cover }) {
+      root.style.setProperty('--stable-viewport-height', `${height}px`)
+      root.style.setProperty('--stable-large-viewport-height', `${cover}px`)
+      root.style.setProperty('--stable-safe-bottom', `${bottom}px`)
+    }
 
     function pageIsLocked() {
       return root.matches('.portrait-required, .fixed-page-open, .navigation-open')
@@ -22,17 +31,26 @@ export default function useStableMobileViewport() {
     function update() {
       if (!touch.matches) {
         root.style.removeProperty('--stable-viewport-height')
+        root.style.removeProperty('--stable-large-viewport-height')
         root.style.removeProperty('--stable-safe-bottom')
         return
       }
-      if (suspended || document.hidden || (viewport && viewport.scale !== 1)) return
+      if (suspended || document.hidden || window.scrollY < 0 ||
+        (viewport && (viewport.scale !== 1 || Math.abs(viewport.offsetTop) > 1))) return
       // Never store keyboard geometry, including the provider's cross-origin form.
-      if (document.activeElement?.matches('input, textarea, select, [contenteditable="true"], iframe') ||
-        document.querySelector('iframe.molzait:not([data-stable-launcher])')) return
+      if (document.activeElement?.matches('input, textarea, select, [contenteditable="true"], iframe')) return
 
       const width = root.clientWidth
       const key = `${width}:${screen.width}x${screen.height}`
       const previous = sizes.get(key)
+      // After initial layout, height-only events are browser chrome, overscroll
+      // or keyboard changes. Never turn those temporary sizes into new anchors.
+      // The provider starts as an unclassified loading frame. It must not block
+      // the first measurement; only an existing anchor needs keyboard protection.
+      if (previous && (initialized || document.querySelector('iframe.molzait:not([data-stable-launcher])'))) {
+        applySize(previous)
+        return
+      }
       const style = getComputedStyle(probe)
       const heights = [parseFloat(style.height), window.innerHeight, viewport?.height]
         .filter(height => Number.isFinite(height) && height > 0)
@@ -43,11 +61,21 @@ export default function useStableMobileViewport() {
       if (previous && measured < previous.height * 0.75) return
       const height = Math.min(previous?.height ?? measured, measured)
       const bottom = Math.max(previous?.bottom ?? 0, parseFloat(style.paddingBottom) || 0)
-      sizes.set(key, { height, bottom })
+      const largeCssHeight = parseFloat(getComputedStyle(largeProbe).height)
+      const smallCssHeight = parseFloat(style.height)
+      // The large browser viewport includes the area behind retractable controls,
+      // but excludes native UI outside the page. screen.height includes both.
+      // Correct inflated CSS units on restore using the same visible-area delta
+      // as the small viewport; keep the browser's own toolbar allowance.
+      const largeHeight = CSS.supports('height', '100svh') && largeCssHeight >= smallCssHeight
+        ? measured + largeCssHeight - smallCssHeight
+        : largeCssHeight
+      const cover = Math.max(height, Math.min(previous?.cover ?? Infinity, largeHeight || height))
+      const size = { height, bottom, cover }
+      sizes.set(key, size)
       // Keep actual pixels, not a live svh expression: WebKit can recalculate all
       // viewport units during tab restoration and when its browser bars retract.
-      root.style.setProperty('--stable-viewport-height', `${height}px`)
-      root.style.setProperty('--stable-safe-bottom', `${bottom}px`)
+      applySize(size)
     }
 
     function clearTimers() {
@@ -63,6 +91,7 @@ export default function useStableMobileViewport() {
         const timer = setTimeout(() => {
           timers.delete(timer)
           update()
+          if (delay === 600) initialized = true
           const headerHeight = document.querySelector('.top-bar')?.getBoundingClientRect().height || 0
           if (restoreHomeTop && location.pathname === '/' && !pageIsLocked() && Math.abs(window.scrollY) <= headerHeight) {
             window.scrollTo(0, 0)
@@ -79,13 +108,17 @@ export default function useStableMobileViewport() {
       restoreHomeTop = false
       clearTimers()
     }
-    function resume() { suspended = false; settle(suspendedAtHomeTop) }
+    function resume() { initialized = true; suspended = false; settle(suspendedAtHomeTop) }
     function onPageShow(event) {
       if (event.persisted) resume()
       else settle(restoreHomeTop)
     }
     function onVisibility() { document.hidden ? suspend() : resume() }
-    function onInteraction() { restoreHomeTop = false; suspendedAtHomeTop = false }
+    function onInteraction() {
+      initialized = true
+      restoreHomeTop = false
+      suspendedAtHomeTop = false
+    }
 
     update()
     settle(Math.abs(window.scrollY) <= 1)
@@ -104,6 +137,7 @@ export default function useStableMobileViewport() {
     return () => {
       clearTimers()
       probe.remove()
+      largeProbe.remove()
       window.removeEventListener('resize', update)
       window.removeEventListener('pageshow', onPageShow)
       window.removeEventListener('pagehide', suspend)
@@ -115,6 +149,7 @@ export default function useStableMobileViewport() {
       document.removeEventListener('visibilitychange', onVisibility)
       for (const event of ['pointerdown', 'touchstart', 'wheel', 'keydown']) window.removeEventListener(event, onInteraction)
       root.style.removeProperty('--stable-viewport-height')
+      root.style.removeProperty('--stable-large-viewport-height')
       root.style.removeProperty('--stable-safe-bottom')
     }
   }, [])

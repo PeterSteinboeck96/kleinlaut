@@ -1,7 +1,6 @@
 import TopBar from '../components/TopBar.jsx'
 import MobileMap from '../components/MobileMap.jsx'
 import { useMenuTransition } from '../components/MenuTransition.jsx'
-import useMobileScreenHeight from '../hooks/useMobileScreenHeight.js'
 import { copy, language } from '../i18n.js'
 import heroImage from '@/assets/images/hero.webp'
 import heroDesktopImage from '@/assets/images/hero_desktop.webp'
@@ -12,14 +11,13 @@ const mapSrc =
   `https://www.google.com/maps?q=kleinlaut&z=18&output=embed&hl=${language}`
 
 export default function DrinksPage() {
-  const heroRef = useMobileScreenHeight()
   const { isRevealing } = useMenuTransition()
   const entrance = isRevealing ? 'opacity-0' : 'animate-fade-rise'
 
   return (
     <section className="site-page home-page">
       <TopBar />
-      <div className="home-hero" ref={heroRef}>
+      <div className="home-hero">
         <picture className="home-hero-background">
           <source srcSet={heroDesktopImage} media="(min-width: 1024px), (orientation: landscape)" />
           <img

@@ -46,7 +46,8 @@
 .nav13-menu-viewport {
   position: absolute;
   inset: var(--header-height) 0 auto;
-  height: calc(var(--viewport-height) - var(--header-height));
+  /* Keep scrollable links out of the launcher's area on short phones. */
+  height: max(0px, calc(var(--viewport-height) - var(--header-height) - var(--widget-clearance) - var(--safe-bottom)));
   overflow: hidden;
 }
 .nav13-panel {
@@ -57,7 +58,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   /* Center the links from the yellow bar, while keeping scrollable content below the ticker. */
-  padding: var(--space-6) var(--page-gutter) calc(var(--space-6) + var(--safe-bottom) + var(--reservation-button-space) + var(--header-bar-height));
+  padding: var(--space-6) var(--page-gutter) max(0px, calc(var(--space-6) + var(--reservation-button-space) + var(--header-bar-height) - var(--widget-clearance)));
   background: #000;
   color: #ff0;
 }
@@ -70,6 +71,11 @@
   color: #000;
 }
 .nav13-menu-links { flex-shrink: 0; margin: auto 0; }
+@media (hover: none) and (pointer: coarse) {
+  .nav13-menu-viewport {
+    height: max(0px, calc(var(--stable-viewport-height) - var(--header-height) - var(--widget-clearance) - var(--stable-safe-bottom)));
+  }
+}
 /* The route beneath is ready before this short fade starts. Keep the yellow
    header and provider widget above the cover throughout the transition. */
 .menu-reveal {

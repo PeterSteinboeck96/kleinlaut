@@ -19,6 +19,8 @@
     --space-8: 2rem;
     --viewport-height: 100vh;
     --stable-viewport-height: 100vh;
+    --large-viewport-height: 100vh;
+    --stable-large-viewport-height: var(--large-viewport-height);
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --stable-safe-bottom: var(--safe-bottom);
@@ -42,6 +44,10 @@
     :root {
       --stable-viewport-height: 100svh;
     }
+  }
+
+  @supports (height: 100lvh) {
+    :root { --large-viewport-height: 100lvh; }
   }
 
   html {
