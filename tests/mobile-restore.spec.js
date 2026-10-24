@@ -53,7 +53,7 @@ test('home photo, text and launcher share stable geometry as Safari controls cha
   await page.goto('/')
   await launcher(page)
   await page.evaluate(() => document.fonts.ready)
-  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('0px')
   const initial = await geometry(page)
   for (const height of [850, 1000, 782]) {
     await page.evaluate(height => { window.testBrowser.height = height }, height)
@@ -67,7 +67,7 @@ test('home photo, text and launcher share stable geometry as Safari controls cha
   const map = await page.locator('.home-map').boundingBox()
   expect(map.y).toBe(873)
   expect(initial.photo.top + initial.photo.height).toBe(map.y)
-  expect(initial.widget.top + initial.widget.height).toBeLessThanOrEqual(782 - 34)
+  expect(initial.widget.top + initial.widget.height).toBe(782)
 })
 
 test('a cold Safari restore with oversized CSS viewport uses the visible area', async ({ page }) => {
@@ -77,19 +77,53 @@ test('a cold Safari restore with oversized CSS viewport uses the visible area', 
   await page.goto('/')
   const frame = await launcher(page)
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-viewport-height'))).toBe('782px')
-  await expect.poll(async () => (await frame.boundingBox()).y).toBe(678)
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
   expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
   expect((await page.locator('.home-hero-content').boundingBox()).y +
     (await page.locator('.home-hero-content').boundingBox()).height).toBe(782)
   await page.evaluate(() => { window.testBrowser.height = 752; window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })) })
-  await expect.poll(async () => (await frame.boundingBox()).y).toBe(678)
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
+})
+
+test('Safari can report the large CSS viewport for svh without shortening the photo', async ({ page }) => {
+  // The page also paints behind Safari's 91px translucent bottom controls.
+  // Both CSS probes can report 873px while visualViewport reports only 782px.
+  await page.setViewportSize({ width: 430, height: 873 })
+  await page.goto('/')
+  const frame = await launcher(page)
+  const photo = await page.locator('.home-hero-background img').boundingBox()
+  expect(photo.y + photo.height).toBe(873)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
+  // The visible height already excludes the lower browser UI and safe area.
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
+  const initial = await geometry(page)
+  for (const height of [620, 782, 873, 782]) {
+    await page.evaluate(height => {
+      window.dispatchEvent(new Event('touchstart'))
+      window.testBrowser.height = height
+      visualViewport.dispatchEvent(new Event('resize'))
+    }, height)
+    expect(await geometry(page)).toEqual(initial)
+  }
+  await page.evaluate(() => scrollTo(0, 1))
+  await expect(page.locator('.home-map')).toBeInViewport()
+})
+
+test('a full viewport still protects the home indicator when there is no browser toolbar', async ({ page }) => {
+  await page.setViewportSize({ width: 430, height: 873 })
+  await page.addInitScript(() => { window.testBrowser.height = 873 })
+  await page.goto('/')
+  const frame = await launcher(page)
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  expect((await frame.boundingBox()).y).toBe(873 - 34 - 70)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
 })
 
 test('pull-to-refresh and its rebound cannot replace the initial anchors', async ({ page }) => {
   await page.goto('/')
   await launcher(page)
   await page.evaluate(() => document.fonts.ready)
-  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('0px')
   const initial = await geometry(page)
   await page.evaluate(() => {
     window.dispatchEvent(new Event('touchstart'))
@@ -111,7 +145,7 @@ test('pull-to-refresh and its rebound cannot replace the initial anchors', async
   }
   await page.waitForTimeout(700)
   expect(await geometry(page)).toEqual(initial)
-  expect(initial.widget.top + initial.widget.height).toBeLessThanOrEqual(782 - 34)
+  expect(initial.widget.top + initial.widget.height).toBe(782)
 })
 
 test('height-only changes after startup are ignored even without a touch event', async ({ page }) => {
@@ -151,19 +185,19 @@ test('a loading reservation frame cannot delay the initial viewport measurement'
     document.querySelector('iframe.molzait').style.height = '70px'
   })
   await expect(frame).toHaveAttribute('data-stable-launcher', '')
-  await expect.poll(async () => (await frame.boundingBox()).y).toBe(678)
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
   await page.evaluate(() => {
     window.testBrowser.height = 782
     visualViewport.dispatchEvent(new Event('resize'))
   })
-  await expect.poll(async () => (await frame.boundingBox()).y).toBe(678)
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
 })
 
 test('tab restoration corrects a phantom scroll only when home was left at the top', async ({ page }) => {
   await page.goto('/')
   await launcher(page)
   await page.evaluate(() => document.fonts.ready)
-  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('0px')
   const initial = await geometry(page)
   await page.evaluate(() => {
     window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))
@@ -215,7 +249,7 @@ test('keyboard and pinch zoom cannot poison the saved mobile geometry', async ({
   await page.goto('/')
   const frame = await launcher(page)
   await page.evaluate(() => document.fonts.ready)
-  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('0px')
   const initial = await geometry(page)
   await frame.evaluate(element => { element.style.height = '100%'; element.style.width = '100%' })
   await expect(frame).not.toHaveAttribute('data-stable-launcher')
@@ -248,7 +282,7 @@ test('short phones keep contact text above the launcher without a minimum-height
   await page.goto('/')
   const frame = await launcher(page)
   await page.evaluate(() => document.fonts.ready)
-  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('0px')
   const textBottom = await page.locator('.home-contact').evaluate(element => {
     const range = document.createRange()
     range.selectNodeContents(element)

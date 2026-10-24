@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { modelLargeViewport } from './helpers/mobile-display.js'
 
 test.use({ hasTouch: true, locale: 'de-AT' })
 
@@ -10,6 +11,9 @@ test.beforeEach(async ({ page }) => {
     for (const dimension of ['width', 'height']) {
       Object.defineProperty(screen, dimension, { get: () => window.testDevice[dimension], configurable: true })
     }
+    // WebKit may replace its native ScreenOrientation object on a viewport resize.
+    // This fixture models hardware orientation independently of browser chrome.
+    Object.defineProperty(screen, 'orientation', { value: new EventTarget(), configurable: true })
     Object.defineProperty(screen.orientation, 'type', { get: () => window.testDevice.orientation, configurable: true })
     Object.defineProperty(screen.orientation, 'angle', {
       get: () => window.testDevice.angle ?? (window.testDevice.orientation.startsWith('landscape') ? 90 : 0),
@@ -34,18 +38,19 @@ async function addWidget(page) {
 
 test('gallery caption and closed widget stay still when browser controls retract', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 664 })
+  await modelLargeViewport(page, 800)
   await page.goto('/fotos')
   await page.evaluate(() => {
-    // Real mobile svh remains unchanged while dvh grows as the toolbar hides.
-    document.documentElement.style.setProperty('--stable-viewport-height', '664px')
+    // The browser chrome already excludes the bottom safe area on this device.
     document.documentElement.style.setProperty('--safe-bottom', '34px')
-    document.documentElement.style.setProperty('--stable-safe-bottom', '34px')
   })
   await page.evaluate(() => document.fonts.ready)
   const frame = await addWidget(page)
   const caption = page.locator('.gallery-caption > span')
   const initialWidget = await frame.boundingBox()
   const initialCaption = await caption.boundingBox()
+  expect(initialWidget.y).toBe(664 - 70)
+  await page.evaluate(() => window.dispatchEvent(new Event('touchstart')))
   for (const [height, inset] of [[720, 0], [800, 34], [664, 34]]) {
     await page.setViewportSize({ width: 390, height })
     await page.evaluate(value => document.documentElement.style.setProperty('--safe-bottom', `${value}px`), inset)

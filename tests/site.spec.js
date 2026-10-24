@@ -381,6 +381,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     }, viewport.height - 100)
     await page.evaluate(() => { window.dispatchEvent(new Event('touchstart')); return document.fonts.ready })
     const initialContact = await page.locator('.home-contact').boundingBox()
+    const touchViewport = await page.evaluate(() => matchMedia('(hover: none) and (pointer: coarse)').matches)
     for (const toolbarHeight of [100, 0, 72]) {
       // Keep the initial content and launcher anchors while browser controls move.
       await page.setViewportSize({ width: viewport.width, height: viewport.height - toolbarHeight })
@@ -399,7 +400,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
       expect(imageBox.height).toBeGreaterThanOrEqual(viewport.height - headerBox.height - 1)
       expect(imageBox.y + imageBox.height).toBeCloseTo(mapBox.y, 0)
       const contactBottom = await page.getByRole('link', { name: 'E-Mail', exact: true }).evaluate(el => el.getBoundingClientRect().bottom)
-      const reservationFrameTop = viewport.height - 100 - 34 - 70
+      const reservationFrameTop = viewport.height - 100 - (touchViewport ? 0 : 34) - 70
       expect(reservationFrameTop - contactBottom).toBeGreaterThanOrEqual(32)
       expect(await page.locator('.home-contact').boundingBox()).toEqual(initialContact)
       await page.evaluate(() => window.scrollBy(0, 300))
@@ -841,7 +842,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     await expect(links).toHaveCSS('font-weight', '800')
     const textBox = await links.boundingBox()
     const headerBox = await page.locator('.nav13-panel-bar').boundingBox()
-    const reservationTop = viewport.height - 100 - 34 - 68
+    const touchViewport = await page.evaluate(() => matchMedia('(hover: none) and (pointer: coarse)').matches)
+    const reservationTop = viewport.height - 100 - (touchViewport ? 0 : 34) - 68
     expect(Math.abs(textBox.y + textBox.height / 2 - (headerBox.y + headerBox.height + reservationTop) / 2)).toBeLessThanOrEqual(2)
     await page.keyboard.press('Escape')
     await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(0, 0, 0)')

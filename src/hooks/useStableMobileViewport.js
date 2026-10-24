@@ -60,17 +60,19 @@ export default function useStableMobileViewport() {
       // must not become the permanent anchor for this display width.
       if (previous && measured < previous.height * 0.75) return
       const height = Math.min(previous?.height ?? measured, measured)
-      const bottom = Math.max(previous?.bottom ?? 0, parseFloat(style.paddingBottom) || 0)
       const largeCssHeight = parseFloat(getComputedStyle(largeProbe).height)
       const smallCssHeight = parseFloat(style.height)
-      // The large browser viewport includes the area behind retractable controls,
-      // but excludes native UI outside the page. screen.height includes both.
-      // Correct inflated CSS units on restore using the same visible-area delta
-      // as the small viewport; keep the browser's own toolbar allowance.
-      const largeHeight = CSS.supports('height', '100svh') && largeCssHeight >= smallCssHeight
+      // Safari can report the same CSS height for svh and lvh while its visible
+      // viewport stops above the translucent address bar. Keep the full lvh in
+      // that case. Only correct impossible, larger-than-screen restore values.
+      const oversized = screen.height > 0 && largeCssHeight > screen.height
+      const largeHeight = oversized && CSS.supports('height', '100svh') && largeCssHeight >= smallCssHeight
         ? measured + largeCssHeight - smallCssHeight
         : largeCssHeight
-      const cover = Math.max(height, Math.min(previous?.cover ?? Infinity, largeHeight || height))
+      const cover = Math.max(height, previous?.cover ?? 0, largeHeight || height)
+      // The visible viewport may already exclude the bottom safe area together
+      // with Safari's toolbar. Reserve only the inset still inside that viewport.
+      const bottom = Math.max(0, (parseFloat(style.paddingBottom) || 0) - (cover - height))
       const size = { height, bottom, cover }
       sizes.set(key, size)
       // Keep actual pixels, not a live svh expression: WebKit can recalculate all
