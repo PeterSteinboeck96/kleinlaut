@@ -104,7 +104,7 @@ test('a cold Safari visit with no reliable small CSS viewport recovers from a co
     await page.waitForTimeout(80)
   }
   await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
-  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(932)
 })
 
 test('a cold restore does not freeze a viewport taller than the physical screen', async ({ page }) => {
@@ -121,7 +121,7 @@ test('a cold restore does not freeze a viewport taller than the physical screen'
     visualViewport.dispatchEvent(new Event('resize'))
   })
   await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
-  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(932)
 })
 
 test('a first visit can finish settling when overscroll ends without another resize', async ({ page }) => {
@@ -202,7 +202,7 @@ test('corrupt saved dimensions are ignored rather than breaking a later visit', 
   await page.reload()
   const frame = await launcher(page)
   expect((await frame.boundingBox()).y).toBe(712)
-  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(932)
 })
 
 test('home photo, text and launcher share stable geometry as Safari controls change', async ({ page }) => {
@@ -221,7 +221,7 @@ test('home photo, text and launcher share stable geometry as Safari controls cha
     await expect.poll(() => geometry(page)).toEqual(initial)
   }
   const map = await page.locator('.home-map').boundingBox()
-  expect(map.y).toBe(873)
+  expect(map.y).toBe(932)
   expect(initial.photo.top + initial.photo.height).toBe(map.y)
   expect(initial.widget.top + initial.widget.height).toBe(782)
 })
@@ -234,7 +234,7 @@ test('a cold Safari restore with oversized CSS viewport uses the visible area', 
   const frame = await launcher(page)
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-viewport-height'))).toBe('782px')
   await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
-  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(932)
   expect((await page.locator('.home-hero-content').boundingBox()).y +
     (await page.locator('.home-hero-content').boundingBox()).height).toBe(782)
   await page.evaluate(() => { window.testBrowser.height = 752; window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })) })
@@ -242,14 +242,14 @@ test('a cold Safari restore with oversized CSS viewport uses the visible area', 
 })
 
 test('Safari can report the large CSS viewport for svh without shortening the photo', async ({ page }) => {
-  // The page also paints behind Safari's 91px translucent bottom controls.
-  // Both CSS probes can report 873px while visualViewport reports only 782px.
+  // Both CSS probes can report 873px while visualViewport reports only 782px,
+  // but Safari paints behind its translucent controls down to the 932px display edge.
   await page.setViewportSize({ width: 430, height: 873 })
   await page.goto('/')
   const frame = await launcher(page)
   const photo = await page.locator('.home-hero-background img').boundingBox()
-  expect(photo.y + photo.height).toBe(873)
-  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
+  expect(photo.y + photo.height).toBe(932)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(932)
   // The visible height already excludes the lower browser UI and safe area.
   await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
   const initial = await geometry(page)
@@ -261,8 +261,14 @@ test('Safari can report the large CSS viewport for svh without shortening the ph
     }, height)
     expect(await geometry(page)).toEqual(initial)
   }
+  // Headless browsers have no translucent toolbar. Expose the full painted
+  // surface while keeping the separately mocked visual viewport at 782px.
+  await page.setViewportSize({ width: 430, height: 932 })
+  expect(await geometry(page)).toEqual(initial)
+  await expect(page.locator('.home-map')).not.toBeInViewport()
   await page.evaluate(() => scrollTo(0, 1))
   await expect(page.locator('.home-map')).toBeInViewport()
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(931)
 })
 
 test('a full viewport still protects the home indicator when there is no browser toolbar', async ({ page }) => {
@@ -272,7 +278,7 @@ test('a full viewport still protects the home indicator when there is no browser
   const frame = await launcher(page)
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
   expect((await frame.boundingBox()).y).toBe(873 - 34 - 70)
-  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(932)
 })
 
 test('pull-to-refresh and its rebound cannot replace the initial anchors', async ({ page }) => {
@@ -445,5 +451,5 @@ test('short phones keep contact text above the launcher without a minimum-height
     return range.getBoundingClientRect().bottom
   })
   expect((await frame.boundingBox()).y - textBottom).toBeGreaterThanOrEqual(24)
-  expect((await page.locator('.home-map').boundingBox()).y).toBe(548)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(568)
 })

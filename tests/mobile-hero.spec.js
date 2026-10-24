@@ -19,6 +19,27 @@ async function modelScreen(page, display) {
   }, display)
 }
 
+test('hero covers the painted display behind Safari controls even when lvh stops earlier', async ({ page }) => {
+  await page.setViewportSize({ width: 430, height: 932 })
+  await modelScreen(page, { width: 430, height: 932 })
+  await modelLargeViewport(page, 873)
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'innerHeight', { get: () => 782 })
+    Object.defineProperty(visualViewport, 'height', { get: () => 782 })
+  })
+  await page.goto('/')
+  await page.evaluate(() => document.documentElement.style.setProperty('--safe-top', '59px'))
+  const photo = await page.locator('.home-hero-background img').boundingBox()
+  expect(photo.y).toBe(163)
+  expect(photo.y + photo.height).toBe(932)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(932)
+  await expect(page.locator('.home-map')).not.toBeInViewport()
+  // This point is below lvh, where the map used to show through the address bar.
+  expect(await page.evaluate(() => document.elementFromPoint(25, 920)?.closest('.home-hero') !== null)).toBe(true)
+  await page.evaluate(() => { window.dispatchEvent(new Event('touchstart')); scrollTo(0, 1) })
+  await expect(page.locator('.home-map')).toBeInViewport()
+})
+
 for (const display of [
   { width: 320, height: 480, large: 460 },
   { width: 320, height: 568, large: 548 },
@@ -27,7 +48,7 @@ for (const display of [
   { width: 402, height: 874, large: 812 },
   { width: 430, height: 932, large: 873 },
 ]) {
-  test(`hero ends at the browser edge, not the hardware edge, at ${display.width}×${display.height}`, async ({ page }) => {
+  test(`hero covers the whole display including translucent browser controls at ${display.width}×${display.height}`, async ({ page }) => {
     const viewport = { width: display.width, height: display.height - 150 }
     await page.setViewportSize(viewport)
     await modelScreen(page, display)
@@ -38,27 +59,28 @@ for (const display of [
     const header = await page.locator('header').boundingBox()
     const photo = await page.locator('.home-hero-background img').boundingBox()
     expect(photo.y).toBe(header.height)
-    expect(photo.y + photo.height).toBeCloseTo(display.large, 0)
-    expect((await page.locator('.home-map').boundingBox()).y).toBeCloseTo(display.large, 0)
+    expect(photo.y + photo.height).toBeCloseTo(display.height, 0)
+    expect((await page.locator('.home-map').boundingBox()).y).toBeCloseTo(display.height, 0)
     const contactTop = await page.locator('.home-contact').evaluate(el => el.getBoundingClientRect().top + scrollY)
     const logoTop = await page.locator('.home-logo').evaluate(el => el.getBoundingClientRect().top + scrollY)
 
     for (const height of [viewport.height + 50, display.large, viewport.height]) {
       await page.setViewportSize({ width: display.width, height })
-      expect((await page.locator('.home-map').boundingBox()).y).toBeCloseTo(display.large, 0)
+      expect((await page.locator('.home-map').boundingBox()).y).toBeCloseTo(display.height, 0)
       expect(await page.locator('.home-contact').evaluate(el => el.getBoundingClientRect().top + scrollY)).toBeCloseTo(contactTop, 0)
       expect(await page.locator('.home-logo').evaluate(el => el.getBoundingClientRect().top + scrollY)).toBeCloseTo(logoTop, 0)
     }
-    // Once the bar retracts, even the first scroll pixel reveals the map.
-    await page.setViewportSize({ width: display.width, height: display.large })
+    // Model the entire painted screen, including pixels behind native controls.
+    await page.setViewportSize({ width: display.width, height: display.height })
+    await expect(page.locator('.home-map')).not.toBeInViewport()
     await page.evaluate(() => { window.dispatchEvent(new Event('touchstart')); scrollTo(0, 1) })
     await expect(page.locator('.home-map')).toBeInViewport()
-    expect((await page.locator('.home-map').boundingBox()).y).toBeCloseTo(display.large - 1, 0)
+    expect((await page.locator('.home-map').boundingBox()).y).toBeCloseTo(display.height - 1, 0)
 
     await page.setViewportSize(viewport)
     await page.reload()
     await page.evaluate(() => scrollTo(0, 0))
-    expect((await page.locator('.home-map').boundingBox()).y).toBeCloseTo(display.large, 0)
+    expect((await page.locator('.home-map').boundingBox()).y).toBeCloseTo(display.height, 0)
 
     // The gallery keeps its separate cover sizing and full-width first photo.
     await page.goto('/fotos')
@@ -88,7 +110,7 @@ test('older Safari uses vh when the newer viewport units are unavailable', async
     CSS.supports = (...args) => args.join(' ').includes('svh') ? false : supports(...args)
   })
   await page.goto('/')
-  expect((await page.locator('.home-map').boundingBox()).y).toBe(548)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(568)
   await page.setViewportSize({ width: 320, height: 500 })
-  expect((await page.locator('.home-map').boundingBox()).y).toBe(548)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(568)
 })

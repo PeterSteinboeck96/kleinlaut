@@ -51,7 +51,8 @@ for (const language of ['de-AT', 'en-GB']) {
             const hours = await page.locator('.home-hours').boundingBox()
             expect(contact.y).toBeGreaterThan(hours.y + hours.height)
             expect(contact.bottom + 12).toBeLessThanOrEqual(widget.y)
-            expect((await page.locator('.home-map').boundingBox()).y).toBe(height + 80)
+            // The photo also covers the painted strip beyond the CSS viewport.
+            expect((await page.locator('.home-map').boundingBox()).y).toBe(height + 160)
           } else if (path === '/fotos') {
             if (language === 'de-AT') await assertFits(page.locator('.gallery-caption > span'))
             else await expect(page.locator('.gallery-caption')).toHaveCount(0)

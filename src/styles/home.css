@@ -18,9 +18,10 @@
 
 @media (max-width: 63.999rem), (hover: none) and (pointer: coarse) {
   .home-hero {
-    /* Fill the page's large viewport, including its translucent address bar.
-       Hardware screen height would count native UI above the page twice. */
-    min-height: calc(var(--stable-large-viewport-height) - var(--header-height));
+    /* Safari can paint below lvh through its translucent bottom controls.
+       Cover the whole display on full-width touch devices. Keep this separate
+       from the stable content height so text and reservation anchors stay put. */
+    min-height: calc(max(var(--stable-large-viewport-height), var(--mobile-screen-height, 0px)) - var(--header-height));
   }
 }
 
