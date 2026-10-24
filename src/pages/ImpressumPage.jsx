@@ -1,16 +1,18 @@
 import TopBar from '../components/TopBar.jsx'
 import useFixedPage from '../hooks/useFixedPage.js'
+import useFittedContent from '../hooks/useFittedContent.js'
 import { copy } from '../i18n.js'
 import '../styles/pages.css'
 
 export default function ImpressumPage() {
   const pageRef = useFixedPage()
+  const detailsRef = useFittedContent()
 
   return (
     <section ref={pageRef} className="site-page fixed-page imprint-page">
       <TopBar />
       <div className="page-panel">
-        <div className="imprint-details">
+        <div ref={detailsRef} className="imprint-details">
           <p className="imprint-company">JP Frameworks GmbH</p>
           <p>Löwengasse 28/30, 1030 Wien</p>
           <p>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { motion, useIsPresent, useReducedMotion } from 'motion/react'
+import { motion, useIsPresent } from 'motion/react'
+import usePrefersReducedMotion from '../hooks/usePrefersReducedMotion.js'
 import drinksPdf from '@/assets/pdfs/kleinlaut.pdf'
 import { copy } from '../i18n.js'
 
@@ -13,7 +14,7 @@ const links = [
 const MotionLink = motion.create(Link)
 
 export default function AnimatedMenuLinks({ className = 'menu-links font-display', label = copy.pageNavigation, onSelect }) {
-  const reduceMotion = useReducedMotion()
+  const reduceMotion = usePrefersReducedMotion()
   const isPresent = useIsPresent()
 
   return (

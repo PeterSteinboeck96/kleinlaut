@@ -41,6 +41,7 @@
   line-height: 1.65;
   color: #a3a3a3;
   overflow-wrap: anywhere;
+  transform: scale(var(--content-scale, 1));
 }
 
 .imprint-company {
@@ -87,14 +88,12 @@ html.fixed-page-open,
 }
 
 /* Short landscape views need fewer rows, rather than a clipped legal notice. */
-@container imprint (max-height: 320px) {
+@container imprint (max-height: 20rem) {
   .imprint-page .page-panel {
     padding-block: 8px calc(8px + var(--safe-bottom) + var(--reservation-button-space));
   }
 
   .imprint-details {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: var(--space-4);
     font-size: 0.875rem;
     line-height: 1.35;
   }
@@ -103,6 +102,13 @@ html.fixed-page-open,
     grid-column: 1 / -1;
     margin-bottom: var(--space-2);
     font-size: 1rem;
+  }
+}
+
+@container imprint (max-height: 20rem) and (min-width: 24rem) {
+  .imprint-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-4);
   }
 }
 

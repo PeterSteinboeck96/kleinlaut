@@ -1,6 +1,7 @@
 import { createContext, useContext, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import usePrefersReducedMotion from '../hooks/usePrefersReducedMotion.js'
 import '../styles/navigation.css'
 
 const MenuTransitionContext = createContext(null)
@@ -11,7 +12,7 @@ export function useMenuTransition() {
 
 export default function MenuTransition({ children }) {
   const navigate = useNavigate()
-  const reduceMotion = useReducedMotion()
+  const reduceMotion = usePrefersReducedMotion()
   const [revealId, setRevealId] = useState(null)
   const nextId = useRef(0)
 

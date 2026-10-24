@@ -38,6 +38,7 @@ export default function Navigation13({ onBack } = {}) {
   const isMenuPage = pathname === '/menu'
   const [open, setOpen] = useState(false)
   const [keyboardFocus, setKeyboardFocus] = useState(false)
+  const mountedRef = useRef(false)
   const dialogRef = useRef(null)
   const triggerRef = useRef(null)
   const desktopRef = useRef(null)
@@ -64,6 +65,8 @@ export default function Navigation13({ onBack } = {}) {
   }
 
   function finishClose() {
+    // Browser history may have already left this page during the exit animation.
+    if (!mountedRef.current) return
     dialogRef.current?.close()
     restorePage()
     const destination = destinationRef.current
@@ -95,7 +98,13 @@ export default function Navigation13({ onBack } = {}) {
   }, [isMenuPage])
 
   // Keep scrolling locked while the menu text exits, and restore on unmount.
-  useEffect(() => () => restorePage(), [])
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      restorePage()
+    }
+  }, [])
 
   useEffect(() => {
     const onKey = () => setKeyboardFocus(true)

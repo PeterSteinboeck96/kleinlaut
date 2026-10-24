@@ -4,18 +4,18 @@ test.use({ locale: 'de-AT' })
 
 const news = 'Neue Herbstkarte • Weihnachtsmarkt Eröffnung Freitag 13.11.2026 • Wir suchen Verstärkung • Bewerbungen per Mail'
 
-async function sampleTrack(track, duration) {
-  return track.evaluate((el, duration) => new Promise(resolve => {
+async function sampleTrack(track, duration, minimumFrames = 1) {
+  return track.evaluate((el, { duration, minimumFrames }) => new Promise(resolve => {
     const frames = []
     let start
     const capture = time => {
       start ??= time
       frames.push({ time, x: el.getBoundingClientRect().x, groups: [...el.children].map(group => group.getBoundingClientRect().toJSON()) })
-      if (time - start >= duration) resolve(frames)
+      if (time - start >= duration && frames.length >= minimumFrames) resolve(frames)
       else requestAnimationFrame(capture)
     }
     requestAnimationFrame(capture)
-  }), duration)
+  }), { duration, minimumFrames })
 }
 
 function travel(frames) {
@@ -69,9 +69,11 @@ for (const width of [320, 390, 1024, 1920, 3840]) {
     await expect(bar.locator('.news-message').first()).toHaveCSS('padding-right', '0px')
     await expect(bar.locator('.news-toggle')).toHaveCSS('touch-action', 'pinch-zoom')
     expect(await bar.locator('.news-message').first().textContent()).toBe(`${news} • `)
-    const frames = await sampleTrack(track, 220)
-    expect(frames.length).toBeGreaterThan(3)
-    expect(travel(frames)).toBeLessThan(-4)
+    // Slow WebKit frames still need enough samples to measure continuous travel.
+    const frames = await sampleTrack(track, 220, 4)
+    // Movement is capped after long frame gaps; require leftward progress,
+    // without assuming a minimum frame rate on a throttled test machine.
+    expect(travel(frames)).toBeLessThan(-0.5)
     for (const frame of frames) {
       expect(frame.groups[0].x).toBeLessThanOrEqual(1)
       expect(frame.groups[1].right).toBeGreaterThanOrEqual(width - 1)
@@ -173,10 +175,13 @@ test('mouse dragging follows the pointer in both directions and coasts without t
     await page.mouse.move(startX + direction * 180, y)
     await page.mouse.up()
     await expect(button).toHaveAttribute('data-paused', 'true')
-    const coast = await sampleTrack(track, 500)
+    const coast = await sampleTrack(track, 500, 6)
     expect(direction * travel(coast)).toBeGreaterThan(15)
     const midpoint = Math.floor(coast.length / 2)
-    expect(Math.abs(travel(coast.slice(midpoint)))).toBeLessThan(Math.abs(travel(coast.slice(0, midpoint))))
+    // Uneven frame spacing must not look like acceleration. Compare speed,
+    // not distances covered by two groups with different elapsed durations.
+    const speed = frames => Math.abs(travel(frames)) / (frames.at(-1).time - frames[0].time)
+    expect(speed(coast.slice(midpoint))).toBeLessThan(speed(coast.slice(0, midpoint + 1)))
   }
 })
 

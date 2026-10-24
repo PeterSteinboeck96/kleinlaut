@@ -19,6 +19,29 @@ async function expectNoHorizontalOverflow(page) {
   expect(excess, `${page.url()} has horizontal overflow`).toBeLessThanOrEqual(1)
 }
 
+async function recordMenuFrames(page) {
+  // Sample in the renderer: several protocol round trips can outlast an exit.
+  await page.evaluate(() => {
+    const frames = []
+    let frameId
+    const capture = () => {
+      const dialog = document.querySelector('dialog[open]')
+      const panel = dialog?.querySelector('.nav13-panel') || document.querySelector('.menu-page .page-panel')
+      frames.push({
+        path: location.pathname,
+        opacities: [...document.querySelectorAll('.menu-links a')].map(el => Number(getComputedStyle(el).opacity)),
+        transform: panel ? getComputedStyle(panel).transform : null,
+        background: panel ? getComputedStyle(panel).backgroundColor : null,
+        dialogOpen: Boolean(dialog),
+        overflow: document.body.style.overflow,
+      })
+      frameId = requestAnimationFrame(capture)
+    }
+    frameId = requestAnimationFrame(capture)
+    window.menuProbe = { frames, stop: () => { cancelAnimationFrame(frameId); return frames } }
+  })
+}
+
 async function expectCentered(locator, page) {
   const box = await locator.boundingBox()
   expect(box).not.toBeNull()
@@ -284,7 +307,7 @@ for (const width of [320, 390, 1024, 1440]) {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     for (const path of ['/', '/menu', '/impressum', '/raumplan']) {
       await page.goto(path)
-      // Exercise a larger user text preference without shrinking the actual text to fit.
+      // Exercise a larger text preference, including the fixed pages' fitting layout.
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px' })
       await page.evaluate(() => document.fonts.ready)
       await expectNoHorizontalOverflow(page)
@@ -540,16 +563,17 @@ for (const start of ['/fotos', '/raumplan', '/impressum']) {
     await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().top)).toBeCloseTo(panelTop, 0)
     expect(await dialog.evaluate(el => getComputedStyle(el, '::backdrop').backgroundColor)).toBe('rgba(0, 0, 0, 0)')
     await expect(dialog.getByRole('link', { name: 'IMPRESSUM', exact: true })).toHaveCSS('opacity', '1')
-    const firstLink = dialog.getByRole('link', { name: 'DRINKS', exact: true })
-    await dialog.getByRole('button', { name: 'Zurück' }).click()
-    await expect.poll(() => firstLink.evaluate(el => Number(getComputedStyle(el).opacity))).toBeLessThan(0.99)
     await expect(panel).toHaveCSS('transform', 'none')
     await expect(panel).toHaveCSS('background-color', 'rgb(0, 0, 0)')
-    await expect(dialog).toBeVisible()
-    await expect(page).toHaveURL(start)
-    expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden')
+    await recordMenuFrames(page)
+    await dialog.getByRole('button', { name: 'Zurück' }).click()
     await expect(page).toHaveURL('/')
     await expect(dialog).not.toBeVisible()
+    const frames = await page.evaluate(() => window.menuProbe.stop())
+    const exit = frames.filter(frame => frame.opacities[0] > 0 && frame.opacities[0] < 0.99)
+    expect(exit.length).toBeGreaterThan(0)
+    expect(exit.every(frame => frame.path === start && frame.dialogOpen && frame.overflow === 'hidden'
+      && frame.transform === 'none' && frame.background === 'rgb(0, 0, 0)')).toBe(true)
     expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden')
     expect(await page.evaluate(() => window.scrollY)).toBe(0)
   })
@@ -561,24 +585,27 @@ for (const width of [1024, 1440, 1920]) {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await page.goto('/')
     for (const destination of ['/fotos', '/']) {
+      await recordMenuFrames(page)
       await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'MENÜ', exact: true }).click()
       const nav = page.getByRole('navigation', { name: 'Seitennavigation', exact: true })
       const links = nav.getByRole('link')
       // Staggered entry: the first link becomes visible before the last one.
-      await expect.poll(() => links.evaluateAll(elements =>
-        elements.length === 4 && Number(getComputedStyle(elements[0]).opacity) > Number(getComputedStyle(elements.at(-1)).opacity)
-      ), { intervals: [10, 20, 50] }).toBe(true)
       await expect(links.last()).toHaveCSS('opacity', '1')
+      expect(await page.evaluate(() => window.menuProbe.frames.some(frame =>
+        frame.opacities.length === 4 && frame.opacities[0] > frame.opacities[3]
+      ))).toBe(true)
       await expectCentered(nav, page)
       await expect(nav).toHaveCSS('transform', 'none')
       await expect(page.locator('.menu-page')).toHaveCSS('background-color', 'rgb(0, 0, 0)')
+      await page.evaluate(() => { window.menuProbe.frames.length = 0 })
       if (destination === '/') await page.getByRole('link', { name: 'ZURÜCK', exact: true }).click()
       else await nav.getByRole('link', { name: 'FOTOS', exact: true }).click()
       // Navigation waits for the text to exit; the black page stays stationary.
-      await expect.poll(() => links.first().evaluate(el => Number(getComputedStyle(el).opacity)), { intervals: [10, 20, 50] }).toBeLessThan(0.99)
-      await expect(page).toHaveURL('/menu')
-      await expect(nav).toHaveCSS('transform', 'none')
       await expect(page).toHaveURL(destination)
+      const frames = await page.evaluate(() => window.menuProbe.stop())
+      const exit = frames.filter(frame => frame.opacities[0] > 0 && frame.opacities[0] < 0.99)
+      expect(exit.length).toBeGreaterThan(0)
+      expect(exit.every(frame => frame.path === '/menu' && frame.transform === 'none')).toBe(true)
     }
   })
 }

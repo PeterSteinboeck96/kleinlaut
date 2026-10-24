@@ -7,7 +7,7 @@ import '../styles/news.css'
 function NewsTicker({ text }) {
   const viewportRef = useRef(null)
   const messageRef = useRef(null)
-  const gesture = useRef({ pressed: false, dragged: false, origin: 0 })
+  const gesture = useRef({ pressed: false, dragged: false, cancelled: false, origin: 0 })
   const inertia = useRef(null)
   const [copies, setCopies] = useState(1)
   const [paused, setPaused] = useState(false)
@@ -27,6 +27,7 @@ function NewsTicker({ text }) {
 
   function cancelGesture() {
     gesture.current.pressed = false
+    gesture.current.cancelled = true
     setDragging(false)
     stopInertia()
   }
@@ -49,9 +50,14 @@ function NewsTicker({ text }) {
   }, [copies, groupWidth])
 
   useEffect(() => {
+    const onVisibilityChange = () => { if (document.hidden) cancelGesture() }
     window.addEventListener('blur', cancelGesture)
+    window.addEventListener('pagehide', cancelGesture)
+    document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       window.removeEventListener('blur', cancelGesture)
+      window.removeEventListener('pagehide', cancelGesture)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
       stopInertia()
     }
   }, [])
@@ -68,12 +74,13 @@ function NewsTicker({ text }) {
       onPointerDown={event => {
         if (!event.isPrimary || event.button !== 0) return
         stopInertia()
-        gesture.current = { pressed: true, dragged: false, origin: position.get() }
+        gesture.current = { pressed: true, dragged: false, cancelled: false, origin: position.get() }
         event.currentTarget.setPointerCapture(event.pointerId)
       }}
       onPointerUp={() => { gesture.current.pressed = false }}
       onPointerCancel={cancelGesture}
       onPanStart={() => {
+        if (!gesture.current.pressed) return
         gesture.current.dragged = true
         setDragging(true)
       }}
@@ -83,7 +90,7 @@ function NewsTicker({ text }) {
       onPanEnd={(event, info) => {
         gesture.current.pressed = false
         setDragging(false)
-        if (event.type === 'pointercancel' || Math.abs(info.velocity.x) < 5) return
+        if (gesture.current.cancelled || event.type === 'pointercancel' || Math.abs(info.velocity.x) < 5) return
         // Motion's inertia uses the release velocity and exponential deceleration.
         inertia.current = animate(position, position.get() + info.velocity.x * 0.8, {
           type: 'inertia', velocity: info.velocity.x, power: 0.8, timeConstant: 500, restDelta: 0.5,
@@ -91,7 +98,7 @@ function NewsTicker({ text }) {
         })
       }}
       onClick={event => {
-        if (event.detail !== 0 && gesture.current.dragged) return
+        if (event.detail !== 0 && (gesture.current.dragged || gesture.current.cancelled)) return
         stopInertia()
         setPaused(value => !value)
       }}
