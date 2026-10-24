@@ -100,7 +100,10 @@ test('touch gestures cannot drag the floorplan, but the open menu can still scro
   expect(await page.evaluate(() => scrollY)).toBe(0)
   expect(scrollOffsets.every(y => y === 0)).toBe(true)
 
-  await page.setViewportSize({ width: 844, height: 320 })
+  // Short portrait viewport with enlarged text: a phone in landscape is
+  // deliberately covered by the rotation notice instead of showing the menu.
+  await page.setViewportSize({ width: 320, height: 480 })
+  await page.evaluate(() => { document.documentElement.style.fontSize = '32px' })
   await page.getByRole('button', { name: 'Menü öffnen' }).click()
   const panel = page.locator('.nav13-panel')
   await swipe({ x: 250, y: 270 }, { x: 250, y: 120 })

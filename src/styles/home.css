@@ -1,37 +1,26 @@
 .home-page {
   background: #000;
-  --home-content-height: 100vh;
-}
-
-@supports (height: 100svh) {
-  .home-page {
-    /* Anchor mobile copy to the viewport with browser controls expanded.
-       Collapsing Safari's toolbars must not move the copy within the hero. */
-    --home-content-height: 100svh;
-  }
+  --home-content-height: var(--stable-viewport-height);
 }
 
 .home-hero {
   position: relative;
   isolation: isolate;
-  --hero-cover-height: 100vh;
   min-height: calc(100vh - var(--header-height));
 }
 
 @supports (height: 100lvh) {
   .home-hero {
-    --hero-cover-height: 100lvh;
     min-height: calc(100lvh - var(--header-height));
   }
 }
 
 @media (max-width: 63.999rem), (hover: none) and (pointer: coarse) {
   .home-hero {
-    /* Cover the actual screen even if Safari's large viewport omits part of
-       the translucent toolbar area. The extra pixel prevents a rounded seam;
-       text remains anchored independently to the stable small viewport. */
+    /* Keep the photo crop independent of Safari's changing toolbar geometry.
+       The physical screen minimum also covers translucent browser controls. */
     min-height: max(
-      calc(var(--hero-cover-height) + var(--safe-bottom)),
+      calc(var(--stable-viewport-height) - var(--header-height) + var(--stable-safe-bottom)),
       calc(var(--mobile-screen-height, 0px) - var(--header-height) + 1px)
     );
   }
@@ -57,7 +46,7 @@
 .home-hero-content {
   display: grid;
   grid-template-rows: minmax(min-content, 1fr) auto;
-  min-height: max(30rem, calc(var(--home-content-height) - var(--header-height)));
+  min-height: calc(var(--home-content-height) - var(--header-height));
   padding-inline: var(--page-gutter);
   text-align: center;
 }
@@ -69,7 +58,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-4);
-  padding-block: var(--space-8);
+  padding-block: clamp(var(--space-4), calc(var(--home-content-height) * 0.04), var(--space-8));
 }
 
 .home-logo {
@@ -95,7 +84,7 @@
   justify-self: center;
   width: min(100%, 42rem);
   margin: 0;
-  padding-bottom: calc(var(--widget-clearance) + var(--safe-bottom) + var(--space-4));
+  padding-bottom: calc(var(--widget-clearance) + var(--stable-safe-bottom) + var(--space-4));
   text-wrap: pretty;
 }
 

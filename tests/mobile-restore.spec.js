@@ -1,0 +1,180 @@
+import { test, expect } from '@playwright/test'
+
+test.use({ hasTouch: true, isMobile: true, locale: 'de-AT' })
+
+test.beforeEach(async ({ page }) => {
+  await page.route('https://**/*', route => route.fulfill({ body: '', contentType: 'text/plain' }))
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.setViewportSize({ width: 430, height: 782 })
+  await page.addInitScript(() => {
+    window.testBrowser = { height: 782, hidden: false, scale: 1, width: 430, screenHeight: 932 }
+    Object.defineProperty(screen, 'width', { get: () => window.testBrowser.width })
+    Object.defineProperty(screen, 'height', { get: () => window.testBrowser.screenHeight })
+    Object.defineProperty(screen.orientation, 'type', { get: () => 'portrait-primary' })
+    Object.defineProperty(visualViewport, 'height', { get: () => window.testBrowser.height })
+    Object.defineProperty(visualViewport, 'scale', { get: () => window.testBrowser.scale })
+    Object.defineProperty(document, 'hidden', { get: () => window.testBrowser.hidden })
+    document.addEventListener('DOMContentLoaded', () => {
+      document.documentElement.style.setProperty('--safe-bottom', '34px')
+    })
+  })
+})
+
+async function launcher(page) {
+  await page.evaluate(() => {
+    const frame = document.createElement('iframe')
+    frame.className = 'molzait'
+    frame.title = 'Reservation fixture'
+    frame.srcdoc = '<!doctype html><button>Reserve</button>'
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:225px;height:70px;border:0'
+    document.body.append(frame)
+  })
+  const frame = page.locator('iframe.molzait')
+  await expect(frame).toHaveAttribute('data-stable-launcher', '')
+  return frame
+}
+
+async function geometry(page) {
+  return page.evaluate(() => {
+    const box = selector => {
+      const { top, height } = document.querySelector(selector).getBoundingClientRect()
+      return { top, height }
+    }
+    return {
+      photo: box('.home-hero-background img'), logo: box('.home-logo'),
+      contact: box('.home-contact'), widget: box('iframe.molzait'),
+    }
+  })
+}
+
+test('home photo, text and launcher share stable geometry as Safari controls change', async ({ page }) => {
+  await page.goto('/')
+  await launcher(page)
+  await page.evaluate(() => document.fonts.ready)
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  const initial = await geometry(page)
+  for (const height of [850, 1000, 782]) {
+    await page.evaluate(height => { window.testBrowser.height = height }, height)
+    await page.setViewportSize({ width: 430, height })
+    await page.evaluate(height => {
+      document.documentElement.style.setProperty('--safe-bottom', height === 782 ? '34px' : '0px')
+      visualViewport.dispatchEvent(new Event('resize'))
+    }, height)
+    await expect.poll(() => geometry(page)).toEqual(initial)
+  }
+  const map = await page.locator('.home-map').boundingBox()
+  expect(map.y).toBeGreaterThanOrEqual(932)
+  expect(initial.photo.top + initial.photo.height).toBe(map.y)
+  expect(initial.widget.top + initial.widget.height).toBeLessThanOrEqual(782 - 34)
+})
+
+test('a cold Safari restore with oversized CSS viewport uses the visible area', async ({ page }) => {
+  // CSS vh/svh/lvh are too large, while the visible viewport is still 782px.
+  await page.setViewportSize({ width: 430, height: 1050 })
+  await page.goto('/')
+  const frame = await launcher(page)
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-viewport-height'))).toBe('782px')
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(678)
+  expect((await page.locator('.home-hero-content').boundingBox()).y +
+    (await page.locator('.home-hero-content').boundingBox()).height).toBe(782)
+  await page.evaluate(() => { window.testBrowser.height = 752; window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })) })
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(648)
+})
+
+test('tab restoration corrects a phantom scroll only when home was left at the top', async ({ page }) => {
+  await page.goto('/')
+  await launcher(page)
+  await page.evaluate(() => document.fonts.ready)
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  const initial = await geometry(page)
+  await page.evaluate(() => {
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))
+    window.testBrowser.hidden = true
+    document.dispatchEvent(new Event('visibilitychange'))
+    scrollTo(0, 59)
+  })
+  await page.setViewportSize({ width: 430, height: 1050 })
+  await page.evaluate(() => {
+    window.testBrowser.hidden = false
+    document.dispatchEvent(new Event('visibilitychange'))
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+  })
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(0)
+  await expect.poll(() => geometry(page)).toEqual(initial)
+
+  // Returning focus is also a recovery signal if a WebView omits pageshow.
+  await page.evaluate(() => {
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))
+    scrollTo(0, 59)
+    window.dispatchEvent(new Event('focus'))
+  })
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(0)
+
+  // A visitor returning from the map must keep their intentional scroll position.
+  await page.setViewportSize({ width: 430, height: 782 })
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('touchstart'))
+    scrollTo(0, 600)
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+  })
+  await page.waitForTimeout(700)
+  expect(await page.evaluate(() => scrollY)).toBe(600)
+
+  // A gesture after returning takes precedence over delayed restoration repairs.
+  await page.evaluate(() => {
+    scrollTo(0, 0)
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+    window.dispatchEvent(new Event('touchstart'))
+    scrollTo(0, 500)
+  })
+  await page.waitForTimeout(700)
+  expect(await page.evaluate(() => scrollY)).toBe(500)
+})
+
+test('keyboard and pinch zoom cannot poison the saved mobile geometry', async ({ page }) => {
+  await page.goto('/')
+  const frame = await launcher(page)
+  await page.evaluate(() => document.fonts.ready)
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  const initial = await geometry(page)
+  await frame.evaluate(element => { element.style.height = '100%'; element.style.width = '100%' })
+  await expect(frame).not.toHaveAttribute('data-stable-launcher')
+  await page.evaluate(() => {
+    window.testBrowser.height = 400
+    visualViewport.dispatchEvent(new Event('resize'))
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+  })
+  await page.waitForTimeout(700)
+  expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-viewport-height'))).toBe('782px')
+  await frame.evaluate(element => { element.style.height = '70px'; element.style.width = '225px' })
+  await expect(frame).toHaveAttribute('data-stable-launcher', '')
+  await page.evaluate(() => {
+    window.testBrowser.scale = 2
+    visualViewport.dispatchEvent(new Event('resize'))
+  })
+  expect(await geometry(page)).toEqual(initial)
+  await page.evaluate(() => {
+    window.testBrowser.height = 782
+    window.testBrowser.scale = 1
+    visualViewport.dispatchEvent(new Event('resize'))
+  })
+  await expect.poll(() => geometry(page)).toEqual(initial)
+})
+
+test('short phones keep contact text above the launcher without a minimum-height overflow', async ({ page }) => {
+  await page.addInitScript(() => Object.assign(window.testBrowser, { width: 320, screenHeight: 568, height: 418 }))
+  await page.setViewportSize({ width: 320, height: 418 })
+  await page.goto('/')
+  const frame = await launcher(page)
+  await page.evaluate(() => document.fonts.ready)
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-safe-bottom'))).toBe('34px')
+  const textBottom = await page.locator('.home-contact').evaluate(element => {
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    return range.getBoundingClientRect().bottom
+  })
+  expect((await frame.boundingBox()).y - textBottom).toBeGreaterThanOrEqual(24)
+  expect((await page.locator('.home-map').boundingBox()).y).toBeGreaterThanOrEqual(568)
+})

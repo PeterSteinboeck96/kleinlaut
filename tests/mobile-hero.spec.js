@@ -29,20 +29,27 @@ for (const display of [
   { width: 430, height: 932 },
   { width: 932, height: 430 },
 ]) {
-  test(`mobile photo covers the physical display beyond browser controls at ${display.width}×${display.height}`, async ({ page }) => {
+  test(display.width > display.height ? 'landscape phones show the portrait notice instead of the photo' :
+    `mobile photo covers the physical display beyond browser controls at ${display.width}×${display.height}`, async ({ page }) => {
     const viewport = { width: display.width, height: display.height - 150 }
     await page.setViewportSize(viewport)
     await modelScreen(page, display)
     await page.goto('/')
 
+    if (display.width > display.height) {
+      await expect(page.locator('.portrait-notice')).toBeVisible()
+      await expect(page.locator('#app')).toHaveAttribute('inert', '')
+      return
+    }
+
     for (const safeBottom of [0, 34]) {
       await page.setViewportSize(viewport)
-      await page.evaluate(({ height, safeBottom }) => {
+      await page.evaluate(safeBottom => {
         document.documentElement.style.setProperty('--safe-top', '0px')
         document.documentElement.style.setProperty('--safe-bottom', `${safeBottom}px`)
-        document.querySelector('.home-page').style.setProperty('--home-content-height', `${height}px`)
+        window.dispatchEvent(new Event('resize'))
         window.scrollTo(0, 0)
-      }, { height: viewport.height, safeBottom })
+      }, safeBottom)
       const contactTop = await page.locator('.home-contact').evaluate(el => el.getBoundingClientRect().top + scrollY)
       const logoTop = await page.locator('.home-logo').evaluate(el => el.getBoundingClientRect().top + scrollY)
 

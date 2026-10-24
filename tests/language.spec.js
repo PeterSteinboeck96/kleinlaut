@@ -47,11 +47,17 @@ test.describe('English page content', () => {
   test.use({ locale: 'en-GB' })
 
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1440, height: 900 }]) {
-    test(`English pages and navigation fit ${viewport.width}×${viewport.height}`, async ({ page }) => {
+    test(`English pages and navigation fit ${viewport.width}×${viewport.height}`, async ({ page, isMobile }) => {
       await page.setViewportSize(viewport)
       await page.emulateMedia({ reducedMotion: 'reduce' })
       for (const path of ['/', '/menu', '/fotos', '/raumplan', '/impressum']) {
         await page.goto(path)
+        if (isMobile && viewport.width > viewport.height && viewport.height < 768) {
+          await expect(page.getByRole('dialog', { name: 'You tipped your phone over!' })).toBeVisible()
+          await expect(page.getByText('Please turn it upright again')).toBeVisible()
+          await expect(page.locator('#app')).toHaveAttribute('inert', '')
+          continue
+        }
         await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible()
         expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
         if (path === '/') {

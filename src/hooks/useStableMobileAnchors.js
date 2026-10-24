@@ -1,18 +1,9 @@
 import { useLayoutEffect } from 'react'
+import useStableMobileViewport from './useStableMobileViewport.js'
 
 export default function useStableMobileAnchors() {
+  useStableMobileViewport()
   useLayoutEffect(() => {
-    const root = document.documentElement
-    let width = -1
-    function updateSafeArea() {
-      if (root.clientWidth === width) return
-      width = root.clientWidth
-      // Some browsers change safe-area-inset-bottom along with their toolbars.
-      // Rebase only for a real layout-width change, not a toolbar or keyboard.
-      root.style.setProperty('--stable-safe-bottom', getComputedStyle(root).getPropertyValue('--safe-bottom').trim() || '0px')
-    }
-    updateSafeArea()
-    window.addEventListener('resize', updateSafeArea)
     const frames = new Map()
 
     function attach(frame) {
@@ -45,8 +36,6 @@ export default function useStableMobileAnchors() {
     })
     additions.observe(document.body, { childList: true })
     return () => {
-      window.removeEventListener('resize', updateSafeArea)
-      root.style.removeProperty('--stable-safe-bottom')
       additions.disconnect()
       for (const [frame, observer] of frames) {
         observer.disconnect()

@@ -162,12 +162,17 @@ test('all routes support direct loads and reloads without runtime errors', async
 })
 
 for (const viewport of viewports) {
-  test(`responsive layout stays centered and usable at ${viewport.width}×${viewport.height}`, async ({ page }) => {
+  test(`responsive layout stays centered and usable at ${viewport.width}×${viewport.height}`, async ({ page, isMobile }) => {
     await page.setViewportSize(viewport)
     await page.emulateMedia({ reducedMotion: 'reduce' })
     for (const route of routes) {
       await page.goto(route)
       await expectNoHorizontalOverflow(page)
+      if (isMobile && viewport.width > viewport.height && viewport.height < 768) {
+        await expect(page.locator('.portrait-notice')).toBeVisible()
+        await expect(page.locator('#app')).toHaveAttribute('inert', '')
+        continue
+      }
       const headerLink = page.getByRole('navigation', { name: 'Hauptnavigation' })
       const headerBox = await page.locator('header').boundingBox()
       expect(headerBox.height).toBeGreaterThanOrEqual(44)
@@ -231,11 +236,18 @@ for (const viewport of viewports) {
   })
 }
 
-test('resizing from portrait to short landscape and back keeps navigation usable', async ({ page }) => {
+test('resizing from portrait to short landscape and back keeps navigation usable', async ({ page, isMobile }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
   await page.setViewportSize({ width: 844, height: 390 })
   await expectNoHorizontalOverflow(page)
+  if (isMobile) {
+    await expect(page.locator('.portrait-notice')).toBeVisible()
+    await expect(page.locator('#app')).toHaveAttribute('inert', '')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(page.locator('.portrait-notice')).toHaveCount(0)
+    await expect(page.locator('#app')).not.toHaveAttribute('inert', '')
+  }
   await page.goto('/menu')
   await page.locator('.menu-links').getByRole('link', { name: 'IMPRESSUM', exact: true }).click()
   await expectReachable(page.getByText('Gastronomiebetrieb'), page)
@@ -347,17 +359,18 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
         document.documentElement.style.setProperty('--viewport-height', `${height}px`)
         document.documentElement.style.setProperty('--safe-top', '59px')
         document.documentElement.style.setProperty('--safe-bottom', '34px')
+        window.dispatchEvent(new Event('resize'))
         window.scrollTo(0, 0)
       }, viewport.height - toolbarHeight)
       const map = page.locator('.home-map')
       const mapBox = await map.boundingBox()
       const imageBox = await page.getByAltText('Cocktail in einer stimmungsvoll beleuchteten Bar').boundingBox()
       const headerBox = await page.locator('header').boundingBox()
-      // Safari can display the next section underneath its floating toolbar,
-      // beyond the height reported for the content viewport. Reserve the header
-      // and bottom safe-area allowance in addition to the full background height.
-      expect(mapBox.y).toBeGreaterThanOrEqual(viewport.height + headerBox.height + 34 - 1)
-      expect(imageBox.height).toBeGreaterThanOrEqual(viewport.height + 34 - 1)
+      // Cover the whole display behind the browser controls without adding the
+      // header a second time, which changes the image crop on restored tabs.
+      expect(mapBox.y).toBeGreaterThanOrEqual(viewport.height - 1)
+      expect(imageBox.height).toBeGreaterThanOrEqual(viewport.height - headerBox.height - 1)
+      expect(imageBox.y + imageBox.height).toBeCloseTo(mapBox.y, 0)
       const contactBottom = await page.getByRole('link', { name: 'E-Mail', exact: true }).evaluate(el => el.getBoundingClientRect().bottom)
       const reservationFrameTop = viewport.height - toolbarHeight - 34 - 70
       expect(reservationFrameTop - contactBottom).toBeGreaterThanOrEqual(32)
@@ -396,10 +409,16 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
 }
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
-  test(`contact stays anchored as browser controls change and scrolls beneath the header at ${viewport.width}px`, async ({ page }) => {
+  test(`contact stays anchored as browser controls change and scrolls beneath the header at ${viewport.width}px`, async ({ page, isMobile }) => {
     await page.setViewportSize(viewport)
     await page.goto('/')
+    if (isMobile && viewport.width > viewport.height) {
+      await expect(page.locator('.portrait-notice')).toBeVisible()
+      await expect(page.locator('#app')).toHaveAttribute('inert', '')
+      return
+    }
     await page.addStyleTag({ content: ':root { --safe-top: 47px; --safe-bottom: 34px; }' })
+    await page.evaluate(() => window.dispatchEvent(new Event('resize')))
     await page.locator('.home-page').evaluate((el, height) => el.style.setProperty('--home-content-height', `${height}px`), viewport.height - 100)
     const contact = page.locator('.home-contact')
     const documentTop = await contact.evaluate(el => el.getBoundingClientRect().top + scrollY)
@@ -434,9 +453,15 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
 }
 
 for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }, { width: 1440, height: 900 }]) {
-  test(`Navigation13 routes, PDF and contact actions work at ${viewport.width}px`, async ({ page, request }) => {
+  test(`Navigation13 routes, PDF and contact actions work at ${viewport.width}px`, async ({ page, request, isMobile }) => {
     await page.setViewportSize(viewport)
     await page.goto('/')
+    if (isMobile && viewport.width > viewport.height && viewport.height < 768) {
+      await expect(page.locator('.portrait-notice')).toBeVisible()
+      await expect(page.locator('#app')).toHaveAttribute('inert', '')
+      await page.setViewportSize({ width: viewport.height, height: viewport.width })
+      await expect(page.locator('.portrait-notice')).toHaveCount(0)
+    }
     const mobile = viewport.width < 1024
     async function navigation() {
       if (mobile) {

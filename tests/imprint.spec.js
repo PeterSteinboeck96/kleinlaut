@@ -11,6 +11,13 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
   test(`imprint stays fully readable without scrolling at ${viewport.width}×${viewport.height}`, async ({ page, browserName, isMobile }) => {
     await page.setViewportSize(viewport)
     await page.goto('/impressum')
+    if (isMobile && viewport.width > viewport.height && viewport.height < 768) {
+      await expect(page.locator('.portrait-notice')).toBeVisible()
+      await expect(page.locator('#app')).toHaveAttribute('inert', '')
+      await page.evaluate(() => scrollTo(0, 500))
+      expect(await page.evaluate(() => scrollY)).toBe(0)
+      return
+    }
     await page.evaluate(() => document.fonts.ready)
     const header = await page.locator('header').boundingBox()
     for (const line of await page.locator('.imprint-details > p').all()) {
