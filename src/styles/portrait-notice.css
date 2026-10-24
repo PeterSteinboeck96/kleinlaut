@@ -30,18 +30,20 @@ html.portrait-required,
   touch-action: none;
 }
 
-.portrait-notice svg {
-  width: 2.5rem;
-  height: 4rem;
-  margin: 0 auto 1rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 3;
-  stroke-linecap: round;
+.portrait-notice__glass {
+  width: min(44vw, 14rem);
+  height: min(36vh, 11rem);
+  height: min(36svh, 11rem);
+  object-fit: contain;
+  margin: 0 auto clamp(0.5rem, 3vh, 1rem);
+}
+
+.portrait-notice__glass--mirrored {
+  transform: scaleX(-1);
 }
 
 .portrait-notice h2 {
-  font-size: clamp(1.25rem, 4vw, 2rem);
+  font-size: clamp(1.25rem, 3.4vw, 2rem);
   line-height: 1.2;
 }
 

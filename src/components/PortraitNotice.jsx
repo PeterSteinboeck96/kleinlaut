@@ -1,17 +1,31 @@
 import { useId, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { copy } from '../i18n.js'
+import martini from '../assets/images/portrait-martini.png'
 import '../styles/portrait-notice.css'
 
 const touch = window.matchMedia('(hover: none) and (pointer: coarse)')
 
-function needsPortrait() {
-  if (!touch.matches || Math.min(screen.width, screen.height) >= 768) return false
+function getTiltDirection() {
+  if (!touch.matches || Math.min(screen.width, screen.height) >= 768) return null
   // Viewport aspect ratio also changes when a keyboard opens. Use the actual
   // device orientation so a portrait reservation form never gets covered.
-  if (screen.orientation?.type) return screen.orientation.type.startsWith('landscape')
-  if (typeof window.orientation === 'number') return Math.abs(window.orientation) === 90
-  return screen.width > screen.height
+  const landscape = screen.orientation?.type
+    ? screen.orientation.type.startsWith('landscape')
+    : typeof window.orientation === 'number'
+      ? Math.abs(window.orientation % 180) === 90
+      : screen.width > screen.height
+  if (!landscape) return null
+
+  // Angles describe counterclockwise device rotation: 90 = left, 270/-90 = right.
+  // Primary/secondary labels alone do not reliably identify the direction.
+  for (const angle of [screen.orientation?.angle, window.orientation]) {
+    if (!Number.isFinite(angle)) continue
+    const normalized = ((angle % 360) + 360) % 360
+    if (normalized === 90) return 'left'
+    if (normalized === 270) return 'right'
+  }
+  return 'left'
 }
 
 function subscribe(callback) {
@@ -30,9 +44,11 @@ function subscribe(callback) {
 }
 
 export default function PortraitNotice() {
-  const visible = useSyncExternalStore(subscribe, needsPortrait)
+  const direction = useSyncExternalStore(subscribe, getTiltDirection)
+  const visible = direction !== null
   const noticeRef = useRef(null)
   const titleId = useId()
+  const messageId = useId()
 
   useLayoutEffect(() => {
     if (!visible) return
@@ -56,14 +72,12 @@ export default function PortraitNotice() {
 
   return visible && createPortal(
     <aside ref={noticeRef} className="portrait-notice" role="dialog" aria-modal="true"
-      aria-labelledby={titleId} tabIndex={-1}>
+      aria-labelledby={titleId} aria-describedby={messageId} tabIndex={-1}>
       <div>
-        <svg viewBox="0 0 40 64" aria-hidden="true" focusable="false">
-          <rect x="5" y="3" width="30" height="58" rx="5" />
-          <path d="M15 9h10M17 54h6" />
-        </svg>
+        <img className={`portrait-notice__glass${direction === 'right' ? ' portrait-notice__glass--mirrored' : ''}`}
+          src={martini} alt="" width="1413" height="1099" draggable={false} />
         <h2 id={titleId} className="font-display">{copy.portraitTitle}</h2>
-        <p>{copy.portraitMessage}</p>
+        <p id={messageId}>{copy.portraitMessage}</p>
       </div>
     </aside>, document.body,
   )
