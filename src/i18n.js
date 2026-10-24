@@ -40,7 +40,7 @@ export const translations = {
     floorplanRooms: ['Garten', 'Séparée', 'Bar', 'WC', 'Floor', 'Hinterraum'],
     business: 'Gastronomiebetrieb',
     portraitTitle: 'Du hast dein Handy umgekippt!',
-    portraitMessage: 'Bitte richte es wieder auf',
+    portraitMessage: 'Bitte richte es wieder auf.',
   },
   en: {
     menu: 'MENU',

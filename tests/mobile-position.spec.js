@@ -144,7 +144,7 @@ for (const api of ['screen', 'legacy Safari']) {
     })
     const notice = page.getByRole('dialog', { name: 'Du hast dein Handy umgekippt!' })
     const glass = notice.locator('img')
-    const message = notice.getByText('Bitte richte es wieder auf')
+    const message = notice.getByText('Bitte richte es wieder auf.')
     await expect(notice).toBeVisible()
     await expect(message).toBeVisible()
     await expect.poll(() => glass.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true)

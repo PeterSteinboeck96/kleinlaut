@@ -45,6 +45,7 @@ html.portrait-required,
 .portrait-notice h2 {
   font-size: clamp(1.25rem, 3.4vw, 2rem);
   line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .portrait-notice p {
