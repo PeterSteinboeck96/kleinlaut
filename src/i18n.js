@@ -39,6 +39,8 @@ export const translations = {
     floorplanAlt: 'Raumplan',
     floorplanRooms: ['Garten', 'Séparée', 'Bar', 'WC', 'Floor', 'Hinterraum'],
     business: 'Gastronomiebetrieb',
+    portraitTitle: 'BITTE HOCHKANT',
+    portraitMessage: 'Halte dein Handy hochkant, um Kleinlaut anzusehen.',
   },
   en: {
     menu: 'MENU',
@@ -76,6 +78,8 @@ export const translations = {
     floorplanAlt: 'Floor plan',
     floorplanRooms: ['Garden', 'Séparée', 'Bar', 'WC', 'Floor', 'Back room'],
     business: 'Hospitality business',
+    portraitTitle: 'PLEASE ROTATE',
+    portraitMessage: 'Hold your phone upright to view Kleinlaut.',
   },
 }
 

@@ -171,6 +171,13 @@ html.fixed-page-open,
   text-shadow: none;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .gallery-caption {
+    bottom: auto;
+    height: max(0px, calc(var(--stable-viewport-height) - var(--header-height) - var(--widget-clearance) - var(--stable-safe-bottom)));
+  }
+}
+
 @media (min-width: 640px) {
   .gallery-caption {
     display: none;

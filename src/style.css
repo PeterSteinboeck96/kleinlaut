@@ -18,8 +18,10 @@
     --space-6: 1.5rem;
     --space-8: 2rem;
     --viewport-height: 100vh;
+    --stable-viewport-height: 100vh;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --stable-safe-bottom: var(--safe-bottom);
     --safe-inline: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
     --header-bar-height: 3.25rem;
     --menu-header-height: calc(var(--header-bar-height) + var(--safe-top));
@@ -33,6 +35,12 @@
   @supports (height: 100dvh) {
     :root {
       --viewport-height: 100dvh;
+    }
+  }
+
+  @supports (height: 100svh) {
+    :root {
+      --stable-viewport-height: 100svh;
     }
   }
 
@@ -99,6 +107,15 @@ iframe.molzait {
   right: env(safe-area-inset-right, 0px) !important;
   max-width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) !important;
   max-height: calc(var(--viewport-height) - var(--safe-top) - var(--safe-bottom)) !important;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  iframe.molzait[data-stable-launcher] {
+    /* Anchor from the stable top rather than following the moving bottom edge.
+       The provider's expanded form keeps its normal viewport positioning. */
+    top: calc(var(--stable-viewport-height) - var(--stable-safe-bottom) - var(--launcher-height)) !important;
+    bottom: auto !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -267,6 +267,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
     await page.evaluate(() => {
       document.documentElement.style.setProperty('--safe-top', '44px')
       document.documentElement.style.setProperty('--safe-bottom', '34px')
+      // Model the device inset captured before its browser controls move.
+      document.documentElement.style.setProperty('--stable-safe-bottom', '34px')
       // Model the external provider's fixed frame; do not depend on its network availability.
       const frame = document.createElement('iframe')
       frame.className = 'molzait'

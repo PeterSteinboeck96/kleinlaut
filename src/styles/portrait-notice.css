@@ -1,0 +1,53 @@
+html.portrait-required,
+.portrait-required body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.portrait-required body {
+  position: fixed;
+  top: var(--portrait-scroll-top);
+  width: 100%;
+}
+
+.portrait-required #app,
+.portrait-required iframe.molzait {
+  /* Also cover the page painted behind Safari's translucent browser bars. */
+  visibility: hidden;
+}
+
+.portrait-notice {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  padding: max(1rem, var(--safe-top)) max(1.5rem, var(--safe-inline)) max(1rem, var(--safe-bottom));
+  background: #000;
+  color: #ff0;
+  text-align: center;
+  outline: none;
+  touch-action: none;
+}
+
+.portrait-notice svg {
+  width: 2.5rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.portrait-notice h2 {
+  font-size: clamp(1.25rem, 4vw, 2rem);
+  line-height: 1.2;
+}
+
+.portrait-notice p {
+  max-width: 32rem;
+  margin: 0.75rem auto 0;
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
