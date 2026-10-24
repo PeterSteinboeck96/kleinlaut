@@ -49,6 +49,162 @@ async function geometry(page) {
   })
 }
 
+for (const shrinkLayout of [false, true]) {
+  test(`an actual reload during pull-to-refresh preserves the established layout (CSS shrinks: ${shrinkLayout})`, async ({ page }) => {
+    await page.goto('/')
+    await launcher(page)
+    await page.evaluate(() => document.fonts.ready)
+    await page.waitForTimeout(700)
+    const initial = await geometry(page)
+
+    // These scripts run in the NEW document. A pageshow event in the old one
+    // would leave the old in-memory measurements alive and miss this bug.
+    await page.addInitScript(() => { window.testBrowser.height = 450 })
+    if (shrinkLayout) await page.setViewportSize({ width: 430, height: 450 })
+    await page.reload()
+    await launcher(page)
+    await page.evaluate(() => document.fonts.ready)
+    await page.waitForTimeout(800)
+    expect(await geometry(page)).toEqual(initial)
+
+    await page.evaluate(() => {
+      window.testBrowser.height = 782
+      visualViewport.dispatchEvent(new Event('resize'))
+    })
+    await page.setViewportSize({ width: 430, height: 782 })
+    expect(await geometry(page)).toEqual(initial)
+  })
+}
+
+test('a first visit does not use a transient visual height instead of the small CSS viewport', async ({ page }) => {
+  await page.addInitScript(() => { window.testBrowser.height = 450 })
+  await page.goto('/')
+  const frame = await launcher(page)
+  await page.waitForTimeout(800)
+  expect((await frame.boundingBox()).y).toBe(712)
+  const initial = await geometry(page)
+  await page.evaluate(() => {
+    window.testBrowser.height = 782
+    visualViewport.dispatchEvent(new Event('resize'))
+  })
+  expect(await geometry(page)).toEqual(initial)
+})
+
+test('a cold Safari visit with no reliable small CSS viewport recovers from a collapsed initial height', async ({ page }) => {
+  await page.setViewportSize({ width: 430, height: 873 })
+  await page.addInitScript(() => { window.testBrowser.height = 450 })
+  await page.goto('/')
+  const frame = await launcher(page)
+  await page.waitForTimeout(800)
+  for (const height of [620, 700, 750, 782]) {
+    await page.evaluate(height => {
+      window.testBrowser.height = height
+      visualViewport.dispatchEvent(new Event('resize'))
+    }, height)
+    await page.waitForTimeout(80)
+  }
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
+})
+
+test('a cold restore does not freeze a viewport taller than the physical screen', async ({ page }) => {
+  await page.setViewportSize({ width: 430, height: 1050 })
+  await page.addInitScript(() => {
+    window.testCoverHeight = 1141
+    window.testBrowser.height = 1050
+  })
+  await page.goto('/')
+  const frame = await launcher(page)
+  await page.waitForTimeout(800)
+  await page.evaluate(() => {
+    window.testBrowser.height = 782
+    visualViewport.dispatchEvent(new Event('resize'))
+  })
+  await expect.poll(async () => (await frame.boundingBox()).y).toBe(712)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
+})
+
+test('a first visit can finish settling when overscroll ends without another resize', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.testBrowser.offset = 180
+    Object.defineProperty(visualViewport, 'offsetTop', { get: () => window.testBrowser.offset })
+  })
+  await page.goto('/')
+  await launcher(page)
+  await page.waitForTimeout(800)
+  await page.evaluate(() => {
+    window.testBrowser.offset = 0
+    visualViewport.dispatchEvent(new Event('scroll'))
+  })
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--stable-viewport-height'))).toBe('782px')
+})
+
+test('a height collapse during startup cannot replace the first valid anchor', async ({ page }) => {
+  await page.goto('/')
+  const frame = await launcher(page)
+  await page.evaluate(() => {
+    window.testBrowser.height = 700
+    visualViewport.dispatchEvent(new Event('resize'))
+  })
+  await page.waitForTimeout(700)
+  expect((await frame.boundingBox()).y).toBe(712)
+})
+
+test('blocked browser storage does not break cold mobile layout measurement', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'sessionStorage', { get() { throw new DOMException('Blocked', 'SecurityError') } })
+    window.testBrowser.height = 450
+  })
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto('/')
+  const frame = await launcher(page)
+  await page.waitForTimeout(700)
+  expect((await frame.boundingBox()).y).toBe(712)
+  expect(errors).toEqual([])
+})
+
+test('reload preserves the photo and anchors even while all live heights and offsets are wrong', async ({ page }) => {
+  await page.goto('/')
+  await launcher(page)
+  await page.evaluate(() => document.fonts.ready)
+  await page.waitForTimeout(700)
+  const initial = await geometry(page)
+  await page.addInitScript(() => {
+    window.testCoverHeight = 450
+    window.testBrowser.height = 450
+    window.testBrowser.offset = 180
+    Object.defineProperty(visualViewport, 'offsetTop', { get: () => window.testBrowser.offset })
+  })
+  await page.setViewportSize({ width: 430, height: 450 })
+  await page.reload()
+  await launcher(page)
+  await page.evaluate(() => document.fonts.ready)
+  expect(await geometry(page)).toEqual(initial)
+  await page.evaluate(() => {
+    window.testBrowser.offset = 0
+    window.testBrowser.height = 782
+    document.documentElement.style.setProperty('--large-viewport-height', '873px')
+    visualViewport.dispatchEvent(new Event('resize'))
+  })
+  await page.setViewportSize({ width: 430, height: 782 })
+  expect(await geometry(page)).toEqual(initial)
+})
+
+test('corrupt saved dimensions are ignored rather than breaking a later visit', async ({ page }) => {
+  await page.goto('/')
+  await launcher(page)
+  await page.waitForTimeout(700)
+  await page.evaluate(() => {
+    const key = Object.keys(sessionStorage).find(key => key.startsWith('kleinlaut:mobile-layout:'))
+    sessionStorage.setItem(key, JSON.stringify({ height: -450, bottom: 0, cover: 873 }))
+  })
+  await page.reload()
+  const frame = await launcher(page)
+  expect((await frame.boundingBox()).y).toBe(712)
+  expect((await page.locator('.home-map').boundingBox()).y).toBe(873)
+})
+
 test('home photo, text and launcher share stable geometry as Safari controls change', async ({ page }) => {
   await page.goto('/')
   await launcher(page)
