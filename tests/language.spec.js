@@ -47,7 +47,7 @@ test.describe('English page content', () => {
   test.use({ locale: 'en-GB' })
 
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1440, height: 900 }]) {
-    test(`English pages and navigation fit ${viewport.width}×${viewport.height}`, async ({ page, isMobile }) => {
+    test(`English pages and navigation fit ${viewport.width}×${viewport.height}`, async ({ page, isMobile, hasTouch }) => {
       await page.setViewportSize(viewport)
       await page.emulateMedia({ reducedMotion: 'reduce' })
       for (const path of ['/', '/menu', '/fotos', '/raumplan', '/impressum']) {
@@ -69,6 +69,9 @@ test.describe('English page content', () => {
           await expect(map).toHaveCount(1)
           await expect(map).toHaveAttribute('src', /[?&]hl=en(?:&|$)/)
           await expect(map).toHaveAttribute('title', 'Kleinlaut location on Google Maps')
+          const imageMap = viewport.width < 1024 || hasTouch
+          await expect(page.locator('.home-map-mobile img')).toBeVisible({ visible: imageMap })
+          await expect(map).toBeVisible({ visible: !imageMap })
           if (viewport.width < 1024) {
             await page.getByRole('button', { name: 'Open menu' }).click()
             const dialog = page.getByRole('dialog', { name: 'Menu', exact: true })

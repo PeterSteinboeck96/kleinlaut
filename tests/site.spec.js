@@ -108,7 +108,7 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-test('home preserves content, contact links and responsive assets', async ({ page }) => {
+test('home preserves content, contact links and responsive assets', async ({ page, hasTouch }) => {
   await page.goto('/')
   await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible()
   await expect(page.getByText('Dienstag bis Samstag')).toBeVisible()
@@ -118,8 +118,9 @@ test('home preserves content, contact links and responsive assets', async ({ pag
   const hero = page.getByAltText('Cocktail in einer stimmungsvoll beleuchteten Bar')
   await expect.poll(() => hero.evaluate((img) => img.naturalWidth)).toBeGreaterThan(0)
   expect(await hero.evaluate((img) => img.currentSrc)).toContain(page.viewportSize().width < 1024 ? '/hero-' : '/hero_desktop-')
-  await expect(page.getByAltText('Kleinlaut auf Google Maps')).toBeVisible({ visible: page.viewportSize().width < 640 })
-  await expect(page.locator('iframe')).toBeVisible({ visible: page.viewportSize().width >= 640 })
+  const imageMap = page.viewportSize().width < 1024 || hasTouch
+  await expect(page.getByAltText('Kleinlaut auf Google Maps')).toBeVisible({ visible: imageMap })
+  await expect(page.locator('iframe')).toBeVisible({ visible: !imageMap })
   await expect(page.locator('script[molzait]')).toHaveAttribute('data-restaurant', 'kleinlaut-f7687aa9f1')
 })
 

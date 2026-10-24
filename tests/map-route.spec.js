@@ -41,7 +41,8 @@ for (const width of [320, 503, 639]) {
   })
 }
 
-test('desktop map does not consume the mobile route animation', async ({ page }) => {
+test('desktop map does not consume the mobile route animation', async ({ page, hasTouch }) => {
+  test.skip(hasTouch, 'Touch devices always use the image map, including wide viewports.')
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/')
   await page.locator('.home-map').evaluate(element => element.scrollIntoView())

@@ -151,23 +151,19 @@
   to { stroke-dashoffset: 0; }
 }
 
-.home-map-live {
-  aspect-ratio: 2965 / 3950;
-}
-
 .home-map-desktop {
   display: none;
 }
 
-@media (min-width: 40rem) {
+/* The original animated map is the default in every language. Only a wide
+   viewport with a desktop pointer gets the interactive Google Maps embed. */
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
   .home-map-mobile {
     display: none;
   }
 
-  .home-map-desktop,
-  .home-map-live {
+  .home-map-desktop {
     display: block;
     height: clamp(20rem, 32vw, 32rem);
-    aspect-ratio: auto;
   }
 }

@@ -64,8 +64,8 @@ export default function DrinksPage() {
         </div>
       </div>
       <div className="home-map">
-        {language === 'de' && <MobileMap />}
-        <div className={`home-map-embed ${language === 'de' ? 'home-map-desktop' : 'home-map-live'}`}>
+        <MobileMap />
+        <div className="home-map-embed home-map-desktop">
           <iframe
             src={mapSrc}
             className="h-full w-full border-0 filter grayscale invert hue-rotate-180 contrast-90"
