@@ -133,6 +133,35 @@
   height: auto;
 }
 
+.home-map-mobile {
+  position: relative;
+}
+
+.home-map-route {
+  position: absolute;
+  /* Coordinates use the original 2965 × 3950 image, so every size aligns. */
+  left: calc(1530 / 2965 * 100%);
+  top: calc(1030 / 3950 * 100%);
+  width: calc(1120 / 2965 * 100%);
+  height: calc(710 / 3950 * 100%);
+  pointer-events: none;
+}
+
+.home-map-route-reveal {
+  opacity: 0;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.home-map-route.is-drawing .home-map-route-reveal {
+  opacity: 1;
+  animation: map-route-reveal 1.6s ease-in-out forwards;
+}
+
+@keyframes map-route-reveal {
+  to { stroke-dashoffset: 0; }
+}
+
 .home-map-live {
   aspect-ratio: 2965 / 3950;
 }

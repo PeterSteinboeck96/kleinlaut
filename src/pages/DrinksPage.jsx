@@ -1,11 +1,11 @@
 import TopBar from '../components/TopBar.jsx'
+import MobileMap from '../components/MobileMap.jsx'
 import { useMenuTransition } from '../components/MenuTransition.jsx'
 import useMobileScreenHeight from '../hooks/useMobileScreenHeight.js'
 import { copy, language } from '../i18n.js'
 import heroImage from '@/assets/images/hero.webp'
 import heroDesktopImage from '@/assets/images/hero_desktop.webp'
 import logoImage from '@/assets/images/logo.png'
-import mapMobileImage from '@/assets/images/map_mobile.webp'
 import '../styles/home.css'
 
 const mapSrc =
@@ -64,21 +64,7 @@ export default function DrinksPage() {
         </div>
       </div>
       <div className="home-map">
-        {language === 'de' && <a
-          className="home-map-mobile"
-          href={`https://www.google.com/maps?q=kleinlaut&hl=${language}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <img
-            src={mapMobileImage}
-            alt={copy.mapAlt}
-            width="2965"
-            height="3950"
-            loading="lazy"
-            decoding="async"
-          />
-        </a>}
+        {language === 'de' && <MobileMap />}
         <div className={`home-map-embed ${language === 'de' ? 'home-map-desktop' : 'home-map-live'}`}>
           <iframe
             src={mapSrc}
