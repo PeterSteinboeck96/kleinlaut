@@ -35,6 +35,8 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     expect(await page.locator('.imprint-page').evaluate(el => el.scrollTop)).toBe(0)
     await expect(page.getByRole('link', { name: 'hallo@kleinlaut.wien' })).toHaveAttribute('href', 'mailto:hallo@kleinlaut.wien')
     await expect(page.getByRole('link', { name: '+43 664 99224120' })).toHaveAttribute('href', 'tel:+4366499224120')
+    await expect(page.getByText('Bewerbungen an:', { exact: false })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'jobs@kleinlaut.wien' })).toHaveAttribute('href', 'mailto:jobs@kleinlaut.wien')
   })
 }
 

@@ -14,7 +14,7 @@ export const translations = {
     goHome: 'Zurück',
     news: {
       label: 'Neuigkeiten',
-      text: 'Neue Herbstkarte • Weihnachtsmarkt Eröffnung Freitag 13.11.2026 • Wir suchen Verstärkung • Bewerbungen per Mail',
+      text: 'Neue Herbstkarte • Weihnachtsmarkt Eröffnung Freitag 13.11.2026 • Wir suchen Verstärkung • Bewerbungen an jobs@kleinlaut.wien',
       pause: 'Lauftext pausieren',
       resume: 'Lauftext fortsetzen',
     },
@@ -39,6 +39,7 @@ export const translations = {
     floorplanAlt: 'Raumplan',
     floorplanRooms: ['Garten', 'Séparée', 'Bar', 'WC', 'Floor', 'Hinterraum'],
     business: 'Gastronomiebetrieb',
+    applications: 'Bewerbungen an:',
     portraitTitle: 'Du hast dein Handy umgekippt!',
     portraitMessage: 'Bitte richte es wieder auf.',
   },
@@ -53,7 +54,7 @@ export const translations = {
     goHome: 'Back',
     news: {
       label: 'Latest news',
-      text: 'New autumn menu • Christmas market opening Friday 13 November 2026 • We’re hiring • Apply by email',
+      text: 'New autumn menu • Christmas market opening Friday 13 November 2026 • We’re hiring • Apply to jobs@kleinlaut.wien',
       pause: 'Pause scrolling text',
       resume: 'Resume scrolling text',
     },
@@ -78,6 +79,7 @@ export const translations = {
     floorplanAlt: 'Floor plan',
     floorplanRooms: ['Garden', 'Séparée', 'Bar', 'WC', 'Floor', 'Back room'],
     business: 'Hospitality business',
+    applications: 'Applications to:',
     portraitTitle: 'You tipped your phone over!',
     portraitMessage: 'Please turn it upright again',
   },

@@ -119,6 +119,8 @@ test.describe('English page content', () => {
         if (path === '/impressum') {
           await expect(page.getByText('JP Frameworks GmbH')).toBeVisible()
           await expect(page.getByText('Hospitality business')).toBeVisible()
+          await expect(page.getByText('Applications to:', { exact: false })).toBeVisible()
+          await expect(page.getByRole('link', { name: 'jobs@kleinlaut.wien' })).toHaveAttribute('href', 'mailto:jobs@kleinlaut.wien')
         }
       }
     })

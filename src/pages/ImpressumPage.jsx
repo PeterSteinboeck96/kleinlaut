@@ -26,6 +26,12 @@ export default function ImpressumPage() {
           <p>ATU80958368</p>
           <p>FN 617457 a</p>
           <p>{copy.business}</p>
+          <p className="imprint-applications">
+            {copy.applications}<br />
+            <a className="underline underline-offset-2" href="mailto:jobs@kleinlaut.wien">
+              jobs@kleinlaut.wien
+            </a>
+          </p>
         </div>
       </div>
     </section>

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 test.use({ locale: 'de-AT' })
 
-const news = 'Neue Herbstkarte • Weihnachtsmarkt Eröffnung Freitag 13.11.2026 • Wir suchen Verstärkung • Bewerbungen per Mail'
+const news = 'Neue Herbstkarte • Weihnachtsmarkt Eröffnung Freitag 13.11.2026 • Wir suchen Verstärkung • Bewerbungen an jobs@kleinlaut.wien'
 
 async function sampleTrack(track, duration, minimumFrames = 1) {
   return track.evaluate((el, { duration, minimumFrames }) => new Promise(resolve => {
@@ -144,7 +144,7 @@ test('English news follows the device language on every page', async ({ page }) 
     await page.goto(path)
     const bar = page.getByRole('region', { name: 'Latest news' })
     await expect(bar).toBeVisible()
-    await expect(bar.locator('#news-text')).toHaveText('New autumn menu • Christmas market opening Friday 13 November 2026 • We’re hiring • Apply by email')
+    await expect(bar.locator('#news-text')).toHaveText('New autumn menu • Christmas market opening Friday 13 November 2026 • We’re hiring • Apply to jobs@kleinlaut.wien')
   }
 })
 
