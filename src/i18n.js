@@ -14,7 +14,7 @@ export const translations = {
     goHome: 'Zurück',
     news: {
       label: 'Neuigkeiten',
-      text: 'Neue Herbstkarte • Weihnachtsmarkt Eröffnung Freitag 13.11.2026 • Wir suchen Verstärkung • Bewerbungen an jobs@kleinlaut.wien',
+      text: 'PUNSCHSTAND TÄGL. GEÖFFNET • NEUE HERBST SPECIALS • GUTSCHEINE AB JETZT ERHÄLTLICH',
       pause: 'Lauftext pausieren',
       resume: 'Lauftext fortsetzen',
     },
@@ -54,7 +54,7 @@ export const translations = {
     goHome: 'Back',
     news: {
       label: 'Latest news',
-      text: 'New autumn menu • Christmas market opening Friday 13 November 2026 • We’re hiring • Apply to jobs@kleinlaut.wien',
+      text: 'PUNCH STAND OPEN DAILY • NEW AUTUMN SPECIALS • GIFT VOUCHERS NOW AVAILABLE',
       pause: 'Pause scrolling text',
       resume: 'Resume scrolling text',
     },
